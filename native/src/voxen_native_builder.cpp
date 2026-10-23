@@ -277,7 +277,9 @@ struct MeshBuild {
                 case 1: return rgb8(232, 161, 47);
                 case 2: return rgb8(53, 201, 178);
                 case 3: return rgb8(84, 126, 232);
-                default: return rgb8(177, 107, 224);
+                case 4: return rgb8(177, 107, 224);
+                case 5: return rgb8(235, 86, 180);
+                default: return rgb8(90, 190, 235);
             }
         }
         switch (material_type) {
@@ -622,7 +624,7 @@ struct MeshBuild {
         want_collision = static_cast<bool>(request.get("collision", false));
         build_collision = static_cast<bool>(job_data.get("build_collision", want_collision));
 
-        if (lod < 0 || lod > 4 || size_voxels_x <= 0 || size_voxels_z <= 0 || world_size_voxels <= 0) {
+        if (lod < 0 || lod > 6 || size_voxels_x <= 0 || size_voxels_z <= 0 || world_size_voxels <= 0) {
             return Dictionary();
         }
 
