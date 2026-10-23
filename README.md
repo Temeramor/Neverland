@@ -99,6 +99,7 @@ The terrain smoke test checks deterministic terrain, the mountain profile, terra
 - Removed the stale proxy scene reference; all visible voxel LODs cast real shadows.
 - Softened the face-lighting contrast while retaining real shadow attenuation and ambient fill.
 - Expanded the hierarchy smoke test to verify mesh sampling strides.
+- Adapted native and GDScript height caches to the selected mesh stride, avoiding dense 0.5 m caches for kilometre-scale root tiles.
 
 ### 0.1.0.4
 - Added hierarchical full-map voxel coverage and parent-fallback visibility while finer child tiles build.
