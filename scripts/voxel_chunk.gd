@@ -100,6 +100,9 @@ func apply_mesh_data(data: Dictionary, material: Material) -> void:
     var mesh_instance := MeshInstance3D.new()
     mesh_instance.name = "VoxelMesh"
     mesh_instance.mesh = mesh
+    # Visible voxel chunks do not cast block-by-block shadows. The terrain shadow proxy
+    # supplies broad mountain shadows to this material instead.
+    mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
     _skirt_visibility_cache = Vector4(-1.0, -1.0, -1.0, -1.0)
     add_child(mesh_instance)
     mesh_ready = true
