@@ -47,8 +47,8 @@ func _process(delta: float) -> void:
     if _voxel_world.is_startup_loading():
         if _progress_timer >= 0.2:
             _progress_timer = 0.0
-            generation_progress.emit(world_seed, _voxel_world.get_startup_progress(),
-                "Готовим стартовый чанк и коллизию... (%d чанков)" % _voxel_world.get_loaded_chunk_count())
+            var status: String = "Строим упрощённую сетку теней от гор..." if not _voxel_world.is_terrain_shadow_ready() else "Готовим стартовый чанк и коллизию... (%d чанков)" % _voxel_world.get_loaded_chunk_count()
+            generation_progress.emit(world_seed, _voxel_world.get_startup_progress(), status)
         return
     _generation_active = false
     generation_progress.emit(world_seed, 1.0,
