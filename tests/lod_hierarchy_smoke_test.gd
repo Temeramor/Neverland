@@ -13,6 +13,14 @@ func _run() -> void:
     await process_frame
 
     var errors: Array[String] = []
+
+    # Regression test: a leaf LOD has no children, so visibility reconciliation
+    # must safely handle the typed empty Array[Vector2i] path.
+    var leaf_key: Vector2i = world._make_lod_key(0, 0, 0)
+    world._wanted[leaf_key] = {"lod": 0, "fallback": false, "collision": false}
+    world._update_lod_subtree_visibility(leaf_key, true)
+    world._wanted.erase(leaf_key)
+
     var samples: Array = [
         [0.0, 0], [127.9, 0],
         [128.0, 1], [255.9, 1],
