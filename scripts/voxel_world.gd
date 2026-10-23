@@ -13,15 +13,17 @@ const BuilderScript = preload("res://scripts/voxel_chunk_builder.gd")
 @export var auto_start_on_ready: bool = true
 
 @export_category("Streaming and LOD")
-@export_range(64.0, 320.0, 16.0) var render_distance_m: float = 256.0
-@export_range(32.0, 128.0, 16.0) var unload_margin_m: float = 80.0
-@export_range(16.0, 48.0, 8.0) var lod0_distance_m: float = 32.0
-@export_range(32.0, 80.0, 8.0) var lod1_distance_m: float = 56.0
-@export_range(64.0, 128.0, 8.0) var lod2_distance_m: float = 96.0
-@export_range(96.0, 192.0, 16.0) var lod3_distance_m: float = 160.0
-@export_range(2.0, 12.0, 2.0) var lod_hysteresis_m: float = 6.0
-@export_range(1, 12, 1) var max_concurrent_mesh_jobs: int = 6
-@export_range(1, 4, 1) var max_mesh_applies_per_frame: int = 3
+@export_range(256.0, 4096.0, 128.0) var render_distance_m: float = 1536.0
+@export_range(32.0, 256.0, 32.0) var unload_margin_m: float = 128.0
+@export_range(16.0, 64.0, 16.0) var lod0_distance_m: float = 32.0
+@export_range(32.0, 128.0, 32.0) var lod1_distance_m: float = 64.0
+@export_range(64.0, 256.0, 64.0) var lod2_distance_m: float = 128.0
+@export_range(128.0, 512.0, 64.0) var lod3_distance_m: float = 256.0
+@export_range(256.0, 1024.0, 128.0) var lod4_distance_m: float = 512.0
+@export_range(512.0, 2048.0, 128.0) var lod5_distance_m: float = 1024.0
+@export_range(2.0, 24.0, 2.0) var lod_hysteresis_m: float = 12.0
+@export_range(1, 12, 1) var max_concurrent_mesh_jobs: int = 8
+@export_range(1, 4, 1) var max_mesh_applies_per_frame: int = 4
 @export_range(1.0, 8.0, 0.5) var max_mesh_apply_time_ms: float = 4.0
 @export_range(0.01, 0.2, 0.01) var streaming_refresh_interval_s: float = 0.02
 @export_range(0.25, 4.0, 0.25) var streaming_refresh_distance_m: float = 0.5
@@ -52,8 +54,8 @@ var _lod_state_cache: Dictionary = {}
 var _retiring_chunks: Array[VoxelTerrainChunk] = []
 var _generation_epoch: int = 0
 var _startup_load_pending: bool = true
-var _build_usec_by_lod: Array = [[], [], [], [], []]
-var _build_p95_cached_usec: Array[float] = [80000.0, 30000.0, 12000.0, 6000.0, 3000.0]
+var _build_usec_by_lod: Array = [[], [], [], [], [], [], []]
+var _build_p95_cached_usec: Array[float] = [80000.0, 30000.0, 12000.0, 6000.0, 3000.0, 1500.0, 800.0]
 var _refresh_usec_samples: Array[int] = []
 var _refresh_p95_cached_usec: float = 0.0
 var _queue_wait_usec_samples: Array[int] = []
@@ -185,7 +187,7 @@ func get_voxel_material(global_voxel: Vector3i) -> int:
     return _generator.get_voxel_material(global_voxel, _world_min_x, _world_min_z, _world_size_voxels)
 
 func get_debug_text() -> String:
-    var lod_counts: Array[int] = [0, 0, 0, 0, 0]
+    var lod_counts: Array[int] = [0, 0, 0, 0, 0, 0, 0]
     var collider_count: int = 0
     var near_pending: int = 0
     for coord_value in _chunks.keys():
@@ -210,8 +212,8 @@ func get_debug_text() -> String:
     var prediction_seconds: float = _effective_prediction_seconds()
     var estimated_work_seconds: float = _estimated_lod_pipeline_usec(0) / 1000000.0
     var lead_margin_m: float = planar_speed * (prediction_seconds - estimated_work_seconds)
-    return "VoxEn 0.3.5 | seed %d | chunks %d | LOD 0:%d 1:%d 2:%d 3:%d 4:%d | colliders %d | jobs %d+%d | near pending %d | stale %d\nBuild avg/p95 ms: L0 %.1f/%.1f L1 %.1f/%.1f | refresh p95 %.2f ms | queue p95/max %.0f/%.1f ms | apply p95 %.0f ms | L0 margin %.1f m (pred %.1fs)" % [
-        seed_value, _chunks.size(), lod_counts[0], lod_counts[1], lod_counts[2], lod_counts[3], lod_counts[4],
+    return "VoxEn 0.3.5 | seed %d | chunks %d | LOD 0:%d 1:%d 2:%d 3:%d 4:%d 5:%d 6:%d | colliders %d | jobs %d+%d | near pending %d | stale %d\nBuild avg/p95 ms: L0 %.1f/%.1f L1 %.1f/%.1f | refresh p95 %.2f ms | queue p95/max %.0f/%.1f ms | apply p95 %.0f ms | L0 margin %.1f m (pred %.1fs)" % [
+        seed_value, _chunks.size(), lod_counts[0], lod_counts[1], lod_counts[2], lod_counts[3], lod_counts[4], lod_counts[5], lod_counts[6],
         collider_count, _running_tasks.size(), _queued.size(), near_pending, _stale_result_count,
         _avg_ms(l0), _build_p95_cached_usec[0] / 1000.0, _avg_ms(l1), _build_p95_cached_usec[1] / 1000.0,
         _refresh_p95_cached_usec / 1000.0, _queue_wait_p95_cached_usec / 1000.0,
@@ -524,7 +526,7 @@ func _poll_worker_tasks() -> void:
                 retry_empty["queued_usec"] = Time.get_ticks_usec()
                 _queued[coord] = retry_empty
             continue
-        var lod_index: int = clampi(int(data.get("lod", record["request"]["lod"])), 0, 4)
+        var lod_index: int = clampi(int(data.get("lod", record["request"]["lod"])), 0, 6)
         _record_timing(_build_usec_by_lod[lod_index], int(data.get("build_usec", 0)), 128)
         var queue_wait_usec: int = maxi(0, int(data.get("worker_started_usec", Time.get_ticks_usec())) - int(record.get("queued_usec", Time.get_ticks_usec())))
         _max_queue_wait_usec = maxi(_max_queue_wait_usec, queue_wait_usec)
@@ -655,7 +657,7 @@ func _lod_for_coord(coord: Vector2i, player_xz: Vector2) -> int:
         target_lod = _lod_for_distance(distance)
     else:
         target_lod = previous_lod
-        while target_lod < 4 and distance > _lod_boundary_for(target_lod) + lod_hysteresis_m:
+        while target_lod < 6 and distance > _lod_boundary_for(target_lod) + lod_hysteresis_m:
             target_lod += 1
         while target_lod > 0 and distance < _lod_boundary_for(target_lod - 1) - lod_hysteresis_m:
             target_lod -= 1
@@ -668,6 +670,8 @@ func _lod_boundary_for(lod_index: int) -> float:
         1: return lod1_distance_m
         2: return lod2_distance_m
         3: return lod3_distance_m
+        4: return lod4_distance_m
+        5: return lod5_distance_m
         _: return INF
 
 func _get_streaming_heading() -> Vector2:
@@ -691,7 +695,7 @@ func _get_streaming_heading() -> Vector2:
 func _deadline_priority(center: Vector2, request: Dictionary, player_xz: Vector2, heading: Vector2, velocity: Vector2) -> float:
     var offset: Vector2 = center - player_xz
     var speed: float = velocity.length()
-    var lod_index: int = clampi(int(request["lod"]), 0, 4)
+    var lod_index: int = clampi(int(request["lod"]), 0, 6)
     var estimate_seconds: float = _estimated_lod_pipeline_usec(lod_index) / 1000000.0
     var priority: float
     if speed >= 2.0:
@@ -744,7 +748,7 @@ func _estimated_lod_pipeline_usec(lod_index: int) -> float:
     )
 
 func _estimated_build_usec(lod_index: int) -> float:
-    return _build_p95_cached_usec[clampi(lod_index, 0, 4)]
+    return _build_p95_cached_usec[clampi(lod_index, 0, 6)]
 
 func _record_timing(samples: Array, value_usec: int, limit: int) -> void:
     samples.append(maxi(0, value_usec))
@@ -815,4 +819,8 @@ func _lod_for_distance(distance: float) -> int:
         return 2
     if distance < lod3_distance_m:
         return 3
-    return 4
+    if distance < lod4_distance_m:
+        return 4
+    if distance < lod5_distance_m:
+        return 5
+    return 6
