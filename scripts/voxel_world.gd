@@ -370,7 +370,11 @@ func _refresh_streaming() -> void:
         var chunk: VoxelTerrainChunk = _chunks.get(coord) as VoxelTerrainChunk
         var needs_build: bool = chunk == null or not chunk.mesh_ready
         if chunk != null:
-            needs_build = needs_build or chunk.lod != int(request["lod"])                 or chunk.debug_lod_colors != _debug_lod_colors                 or (bool(request["collision"]) and not chunk.collision_enabled)
+            needs_build = needs_build or (
+                chunk.lod != int(request["lod"])
+                or chunk.debug_lod_colors != _debug_lod_colors
+                or (bool(request["collision"]) and not chunk.collision_enabled)
+            )
         if _running_job_matches(coord, request) or _completed_job_matches(coord, request):
             _queued.erase(coord)
         elif needs_build:
@@ -765,7 +769,7 @@ func _collect_lod_tiles(lod_index: int, tile_x: int, tile_z: int, player_xz: Vec
     var nearest: float = _distance_to_chunk_bounds(player_xz, bounds)
     var boundary: float = _lod_boundary_for(lod_index - 1) if lod_index > 0 else -1.0
     if lod_index == 6:
-        boundary = minf(lod5_distance_m, render_distance_m)
+        boundary = lod5_distance_m
     var previous: Dictionary = _wanted.get(key, {})
     var was_split: bool = bool(previous.get("fallback", false))
     var split: bool = false
