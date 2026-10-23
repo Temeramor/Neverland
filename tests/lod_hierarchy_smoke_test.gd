@@ -14,6 +14,50 @@ func _run() -> void:
 
     var errors: Array[String] = []
 
+    # Regression: rebuilt chunks must inherit the hierarchy visibility state.
+    # Otherwise a chunk hidden before a rebuild creates a visible MeshInstance3D
+    # and can draw an inactive LOD over the currently selected terrain.
+    var inactive_chunk := VoxelTerrainChunk.new()
+    root.add_child(inactive_chunk)
+    inactive_chunk.set_render_active(false)
+    var triangle_vertices := PackedVector3Array([
+        Vector3.ZERO, Vector3(1.0, 0.0, 0.0), Vector3(0.0, 0.0, 1.0)
+    ])
+    var triangle_normals := PackedVector3Array([Vector3.UP, Vector3.UP, Vector3.UP])
+    var triangle_colors := PackedColorArray([Color.WHITE, Color.WHITE, Color.WHITE])
+    var triangle_indices := PackedInt32Array([0, 1, 2])
+    inactive_chunk.apply_mesh_data({
+        "coord": Vector2i.ZERO,
+        "lod": 0,
+        "step_voxels": 2,
+        "debug_lod_colors": false,
+        "neighbor_lods_used": {},
+        "position": Vector3.ZERO,
+        "vertices": triangle_vertices,
+        "normals": triangle_normals,
+        "colors": triangle_colors,
+        "indices": triangle_indices,
+        "has_geometry": true,
+        "want_collision": false
+    }, StandardMaterial3D.new())
+    var rebuilt_mesh := inactive_chunk.get_node_or_null("VoxelMesh") as MeshInstance3D
+    if rebuilt_mesh == null or rebuilt_mesh.visible:
+        errors.append("A rebuilt inactive chunk must not show its new mesh")
+
+    # Hierarchy hand-off must also reject a mesh built with an old sampling stride.
+    var readiness_key := world._make_lod_key(0, 0, 0)
+    world._chunks[readiness_key] = inactive_chunk
+    world._wanted[readiness_key] = {"lod": 0, "step_voxels": 8, "fallback": false}
+    var readiness_children: Array[Vector2i] = [readiness_key]
+    if world._all_lod_children_ready(readiness_children):
+        errors.append("A child with a stale mesh stride must not count as ready")
+    world._wanted[readiness_key]["step_voxels"] = 2
+    if not world._all_lod_children_ready(readiness_children):
+        errors.append("A child matching the requested LOD and stride should count as ready")
+    world._wanted.erase(readiness_key)
+    world._chunks.erase(readiness_key)
+    inactive_chunk.queue_free()
+
     # Regression test: a leaf LOD has no children, so visibility reconciliation
     # must safely handle the typed empty Array[Vector2i] path.
     var leaf_key: Vector2i = world._make_lod_key(0, 0, 0)
@@ -67,6 +111,25 @@ func _run() -> void:
                 max_distance, expected_max_lod, world._lod_for_distance(max_distance)
             ])
     world.set_lod_settings(1, 128.0)
+
+    # LOD boundaries are distance bands, not a command to subdivide every root.
+    # At the origin the central root must refine, while a far corner root remains LOD6.
+    var distance_requests: Dictionary = {}
+    var distance_root_count: int = ceili(float(world._world_size_voxels) / float(world._chunk_size_voxels * 64))
+    for root_z in range(distance_root_count):
+        for root_x in range(distance_root_count):
+            world._collect_lod_tiles(
+                6, root_x, root_z, Vector2.ZERO, Vector2(0.0, -1.0), Vector2.ZERO,
+                distance_requests
+            )
+    var nearby_root: Dictionary = distance_requests.get(world._make_lod_key(6, 2, 2), {})
+    var remote_root: Dictionary = distance_requests.get(world._make_lod_key(6, 0, 0), {})
+    if nearby_root.is_empty() or not bool(nearby_root.get("fallback", false)):
+        errors.append("The root containing the player should refine to child LODs")
+    if remote_root.is_empty() or bool(remote_root.get("fallback", true)):
+        errors.append("A remote corner root outside the LOD5 boundary must remain coarse")
+    if distance_requests.has(world._make_lod_key(5, 0, 0)):
+        errors.append("A remote LOD6 root must not create unnecessary LOD5 descendants")
 
     var expected_tile_sizes: Array[float] = [32.0, 64.0, 128.0, 256.0, 512.0, 1024.0, 2048.0]
     for lod in range(7):
