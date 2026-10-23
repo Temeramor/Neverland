@@ -45,7 +45,7 @@ func _run() -> void:
         var requested: Dictionary = {}
         world._collect_lod_tiles(
             lod, 0, 0,
-            Vector2(-5000.0, -5000.0), Vector2(0.0, -1.0), Vector2.ZERO,
+            Vector2(5000.0, 5000.0), Vector2(0.0, -1.0), Vector2.ZERO,
             requested
         )
         var key: Vector2i = world._make_lod_key(lod, 0, 0)
