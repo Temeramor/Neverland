@@ -541,6 +541,7 @@ struct MeshBuild {
     }
 
     void build_lod_skirts() {
+        const int32_t skirt_depth_voxels = std::max<int32_t>(LOD_SKIRT_DEPTH_VOXELS, step_voxels * 8);
         const double x0 = 0.0;
         const double x1 = static_cast<double>(cells_x * step_voxels) * VOXEL_SIZE;
         const double z0 = 0.0;
@@ -551,7 +552,7 @@ struct MeshBuild {
                 const int32_t h = heights[grid_index(0, z)];
                 const int32_t outer_h = heights[grid_index(-1, z)];
                 const int32_t top = std::min(h, outer_h);
-                const int32_t low = std::max(0, top - LOD_SKIRT_DEPTH_VOXELS);
+                const int32_t low = std::max(0, top - skirt_depth_voxels);
                 add_segmented_side_face(
                     Vector3(x0, static_cast<double>(low) * VOXEL_SIZE, static_cast<double>(z + 1) * step_voxels * VOXEL_SIZE),
                     Vector3(x0, static_cast<double>(top) * VOXEL_SIZE, static_cast<double>(z + 1) * step_voxels * VOXEL_SIZE),
@@ -566,7 +567,7 @@ struct MeshBuild {
                 const int32_t h = heights[grid_index(cells_x - 1, z)];
                 const int32_t outer_h = heights[grid_index(cells_x, z)];
                 const int32_t top = std::min(h, outer_h);
-                const int32_t low = std::max(0, top - LOD_SKIRT_DEPTH_VOXELS);
+                const int32_t low = std::max(0, top - skirt_depth_voxels);
                 add_segmented_side_face(
                     Vector3(x1, static_cast<double>(low) * VOXEL_SIZE, static_cast<double>(z) * step_voxels * VOXEL_SIZE),
                     Vector3(x1, static_cast<double>(top) * VOXEL_SIZE, static_cast<double>(z) * step_voxels * VOXEL_SIZE),
@@ -581,7 +582,7 @@ struct MeshBuild {
                 const int32_t h = heights[grid_index(x, 0)];
                 const int32_t outer_h = heights[grid_index(x, -1)];
                 const int32_t top = std::min(h, outer_h);
-                const int32_t low = std::max(0, top - LOD_SKIRT_DEPTH_VOXELS);
+                const int32_t low = std::max(0, top - skirt_depth_voxels);
                 add_segmented_side_face(
                     Vector3(static_cast<double>(x + 1) * step_voxels * VOXEL_SIZE, static_cast<double>(low) * VOXEL_SIZE, z0),
                     Vector3(static_cast<double>(x) * step_voxels * VOXEL_SIZE, static_cast<double>(low) * VOXEL_SIZE, z0),
@@ -596,7 +597,7 @@ struct MeshBuild {
                 const int32_t h = heights[grid_index(x, cells_z - 1)];
                 const int32_t outer_h = heights[grid_index(x, cells_z)];
                 const int32_t top = std::min(h, outer_h);
-                const int32_t low = std::max(0, top - LOD_SKIRT_DEPTH_VOXELS);
+                const int32_t low = std::max(0, top - skirt_depth_voxels);
                 add_segmented_side_face(
                     Vector3(static_cast<double>(x) * step_voxels * VOXEL_SIZE, static_cast<double>(low) * VOXEL_SIZE, z1),
                     Vector3(static_cast<double>(x + 1) * step_voxels * VOXEL_SIZE, static_cast<double>(low) * VOXEL_SIZE, z1),
@@ -628,7 +629,7 @@ struct MeshBuild {
             return Dictionary();
         }
 
-        step_voxels = 1 << lod;
+        step_voxels = std::max<int32_t>(1, static_cast<int32_t>(request.get("step_voxels", 1 << lod)));
         cell_size = static_cast<double>(step_voxels) * VOXEL_SIZE;
         cells_x = static_cast<int32_t>(std::ceil(static_cast<double>(size_voxels_x) / step_voxels));
         cells_z = static_cast<int32_t>(std::ceil(static_cast<double>(size_voxels_z) / step_voxels));
