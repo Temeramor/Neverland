@@ -54,6 +54,18 @@ func _run() -> void:
             errors.append("Scaled LOD distance %.1f m expected LOD%d, got LOD%d" % [
                 scaled_distance, expected_scaled_lod, world._lod_for_distance(scaled_distance)
             ])
+    world.set_lod_settings(1, 256.0)
+    var maximum_distance_samples: Array = [
+        [255.9, 0], [256.0, 1], [511.9, 1],
+        [512.0, 2], [8191.9, 5], [8192.0, 6]
+    ]
+    for sample in maximum_distance_samples:
+        var max_distance: float = float(sample[0])
+        var expected_max_lod: int = int(sample[1])
+        if world._lod_for_distance(max_distance) != expected_max_lod:
+            errors.append("Maximum LOD distance %.1f m expected LOD%d, got LOD%d" % [
+                max_distance, expected_max_lod, world._lod_for_distance(max_distance)
+            ])
     world.set_lod_settings(1, 128.0)
 
     var expected_tile_sizes: Array[float] = [32.0, 64.0, 128.0, 256.0, 512.0, 1024.0, 2048.0]
