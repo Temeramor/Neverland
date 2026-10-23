@@ -129,15 +129,26 @@ func _build_ui() -> void:
     settings_title.add_theme_color_override("font_color", COLOR_GOLD)
     settings_stack.add_child(settings_title)
 
+    _settings_scroll = ScrollContainer.new()
+    _settings_scroll.name = "SettingsScroll"
+    _settings_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    _settings_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    settings_stack.add_child(_settings_scroll)
+
+    var settings_content := VBoxContainer.new()
+    settings_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    settings_content.add_theme_constant_override("separation", 8)
+    _settings_scroll.add_child(settings_content)
+
     var detail_heading := _make_label("Уровень детализации", true)
-    settings_stack.add_child(detail_heading)
+    settings_content.add_child(detail_heading)
 
     var detail_description := _make_label(
         "Увеличивает размер ячеек сетки на дальних уровнях LOD. Это снижает число мелких полигонов вдали.",
         false
     )
     detail_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-    settings_stack.add_child(detail_description)
+    settings_content.add_child(detail_description)
 
     _detail_option = OptionButton.new()
     _detail_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -147,21 +158,21 @@ func _build_ui() -> void:
     _detail_option.add_item("Максимум: LOD1 ×16, LOD2 ×32", 3)
     _detail_option.select(clampi(GameSettings.lod_detail_bias, 0, 3))
     _detail_option.item_selected.connect(_on_detail_level_changed)
-    settings_stack.add_child(_detail_option)
+    settings_content.add_child(_detail_option)
 
     var distance_heading := _make_label("Дистанция детализации", true)
-    settings_stack.add_child(distance_heading)
+    settings_content.add_child(distance_heading)
 
     var distance_description := _make_label(
         "LOD0 задаёт первую границу. Все следующие границы автоматически удваиваются.",
         false
     )
     distance_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-    settings_stack.add_child(distance_description)
+    settings_content.add_child(distance_description)
 
     var distance_row := HBoxContainer.new()
     distance_row.add_theme_constant_override("separation", 8)
-    settings_stack.add_child(distance_row)
+    settings_content.add_child(distance_row)
 
     _distance_slider = HSlider.new()
     _distance_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -182,14 +193,14 @@ func _build_ui() -> void:
     _distance_bands_label = _make_label("", false)
     _distance_bands_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     _distance_bands_label.custom_minimum_size = Vector2(0.0, 84.0)
-    settings_stack.add_child(_distance_bands_label)
+    settings_content.add_child(_distance_bands_label)
 
     var hint := _make_label(
         "Настройки применяются сразу. После закрытия паузы чанки перестроятся с новым шагом сетки.",
         false
     )
     hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-    settings_stack.add_child(hint)
+    settings_content.add_child(hint)
 
     var settings_buttons := HBoxContainer.new()
     settings_buttons.add_theme_constant_override("separation", 8)
@@ -266,6 +277,8 @@ func _fit_to_viewport() -> void:
     var panel_height: float = minf(680.0, maxf(300.0, view_size.y - 24.0))
     _main_panel.custom_minimum_size = Vector2(minf(panel_width, 430.0), 0.0)
     _settings_panel.custom_minimum_size = Vector2(panel_width, panel_height)
+    if _settings_scroll != null:
+        _settings_scroll.custom_minimum_size = Vector2(0.0, maxf(140.0, panel_height - 180.0))
 
 
 func _show_main_page() -> void:
