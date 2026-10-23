@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode diffuse_burley, cull_back, ambient_light_disabled;
+render_mode diffuse_burley, cull_back;
 
 uniform float pixel_size : hint_range(0.1, 1.2, 0.05) = 0.1;
 uniform float seed_low = 240518.0;
@@ -250,14 +250,14 @@ void fragment() {
             ALBEDO = distant_rock;
         }
     }
-    // Small constant fill keeps the palette readable in shadow while avoiding
-    // ambient-normal darkening on the upper/lower halves of the voxel terrain.
-    EMISSION = ALBEDO * 0.12;
+    // A small self-lit baseline stops fully occluded voxel faces from collapsing to black.
+    // Environment ambient light remains enabled to soften the top/side brightness transition.
+    EMISSION = ALBEDO * 0.03;
     ROUGHNESS = 0.96;
 }
 
 void light() {
-    // Uniform direct illumination across face orientations, but still use ATTENUATION
-    // so shadows cast by the coarse terrain silhouette remain visible on the voxels.
-    DIFFUSE_LIGHT += ALBEDO * LIGHT_COLOR * ATTENUATION / PI;
+    // Ignore face orientation for direct illumination, reducing the hard bright-top /
+    // dark-side band. ATTENUATION is retained, so real shadows still darken the terrain.
+    DIFFUSE_LIGHT += ALBEDO * LIGHT_COLOR * ATTENUATION * 0.75;
 }
