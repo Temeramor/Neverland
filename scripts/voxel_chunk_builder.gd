@@ -51,7 +51,7 @@ func build_mesh_data(job_data: Dictionary) -> Dictionary:
     collision_enabled = false
     debug_lod_colors = p_debug_lod_colors
 
-    var step_voxels: int = 1 << lod
+    var step_voxels: int = maxi(1, int(request.get("step_voxels", 1 << lod)))
     var cell_size: float = float(step_voxels) * VOXEL_SIZE
     var cells_x: int = int(ceil(float(size_voxels_x) / float(step_voxels)))
     var cells_z: int = int(ceil(float(size_voxels_z) / float(step_voxels)))
@@ -295,33 +295,34 @@ func _build_lod_skirts(heights: PackedInt32Array, surface_types: PackedByteArray
     var x1: float = float(cells_x * step_voxels) * VOXEL_SIZE
     var z0: float = 0.0
     var z1: float = float(cells_z * step_voxels) * VOXEL_SIZE
+    var skirt_depth_voxels: int = maxi(LOD_SKIRT_DEPTH_VOXELS, step_voxels * 8)
     if int(neighbor_lods.get("left", -1)) >= 0:
         for z in range(cells_z):
             var h: int = heights[_grid_index(0, z, grid_width, halo)]
             var outer_h: int = heights[_grid_index(-1, z, grid_width, halo)]
             var top: int = mini(h, outer_h)
-            var low: int = maxi(0, top - LOD_SKIRT_DEPTH_VOXELS)
+            var low: int = maxi(0, top - skirt_depth_voxels)
             _add_segmented_side_face(Vector3(x0, float(low) * VOXEL_SIZE, float(z + 1) * step_voxels * VOXEL_SIZE), Vector3(x0, float(top) * VOXEL_SIZE, float(z + 1) * step_voxels * VOXEL_SIZE), Vector3(x0, float(top) * VOXEL_SIZE, float(z) * step_voxels * VOXEL_SIZE), Vector3(x0, float(low) * VOXEL_SIZE, float(z) * step_voxels * VOXEL_SIZE), Vector3.LEFT, low, top, int(surface_types[z * cells_x]), true, SKIRT_ALPHA_LEFT)
     if int(neighbor_lods.get("right", -1)) >= 0:
         for z in range(cells_z):
             var h: int = heights[_grid_index(cells_x - 1, z, grid_width, halo)]
             var outer_h: int = heights[_grid_index(cells_x, z, grid_width, halo)]
             var top: int = mini(h, outer_h)
-            var low: int = maxi(0, top - LOD_SKIRT_DEPTH_VOXELS)
+            var low: int = maxi(0, top - skirt_depth_voxels)
             _add_segmented_side_face(Vector3(x1, float(low) * VOXEL_SIZE, float(z) * step_voxels * VOXEL_SIZE), Vector3(x1, float(top) * VOXEL_SIZE, float(z) * step_voxels * VOXEL_SIZE), Vector3(x1, float(top) * VOXEL_SIZE, float(z + 1) * step_voxels * VOXEL_SIZE), Vector3(x1, float(low) * VOXEL_SIZE, float(z + 1) * step_voxels * VOXEL_SIZE), Vector3.RIGHT, low, top, int(surface_types[z * cells_x + cells_x - 1]), true, SKIRT_ALPHA_RIGHT)
     if int(neighbor_lods.get("north", -1)) >= 0:
         for x in range(cells_x):
             var h: int = heights[_grid_index(x, 0, grid_width, halo)]
             var outer_h: int = heights[_grid_index(x, -1, grid_width, halo)]
             var top: int = mini(h, outer_h)
-            var low: int = maxi(0, top - LOD_SKIRT_DEPTH_VOXELS)
+            var low: int = maxi(0, top - skirt_depth_voxels)
             _add_segmented_side_face(Vector3(float(x + 1) * step_voxels * VOXEL_SIZE, float(low) * VOXEL_SIZE, z0), Vector3(float(x) * step_voxels * VOXEL_SIZE, float(low) * VOXEL_SIZE, z0), Vector3(float(x) * step_voxels * VOXEL_SIZE, float(top) * VOXEL_SIZE, z0), Vector3(float(x + 1) * step_voxels * VOXEL_SIZE, float(top) * VOXEL_SIZE, z0), Vector3(0.0, 0.0, -1.0), low, top, int(surface_types[x]), false, SKIRT_ALPHA_NORTH)
     if int(neighbor_lods.get("south", -1)) >= 0:
         for x in range(cells_x):
             var h: int = heights[_grid_index(x, cells_z - 1, grid_width, halo)]
             var outer_h: int = heights[_grid_index(x, cells_z, grid_width, halo)]
             var top: int = mini(h, outer_h)
-            var low: int = maxi(0, top - LOD_SKIRT_DEPTH_VOXELS)
+            var low: int = maxi(0, top - skirt_depth_voxels)
             _add_segmented_side_face(Vector3(float(x) * step_voxels * VOXEL_SIZE, float(low) * VOXEL_SIZE, z1), Vector3(float(x + 1) * step_voxels * VOXEL_SIZE, float(low) * VOXEL_SIZE, z1), Vector3(float(x + 1) * step_voxels * VOXEL_SIZE, float(top) * VOXEL_SIZE, z1), Vector3(float(x) * step_voxels * VOXEL_SIZE, float(top) * VOXEL_SIZE, z1), Vector3(0.0, 0.0, 1.0), low, top, int(surface_types[(cells_z - 1) * cells_x + x]), false, SKIRT_ALPHA_SOUTH)
 
 func _sample_height_voxels(
