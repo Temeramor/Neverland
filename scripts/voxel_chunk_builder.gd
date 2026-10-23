@@ -61,18 +61,19 @@ func build_mesh_data(job_data: Dictionary) -> Dictionary:
     var grid_width: int = cells_x + halo * 2
     var grid_depth: int = cells_z + halo * 2
     var total_samples: int = grid_width * grid_depth
-    var cache_origin_x: int = floori(float(start_voxel_x - halo * step_voxels - HEIGHT_CACHE_STEP_VOXELS * 2) / float(HEIGHT_CACHE_STEP_VOXELS)) * HEIGHT_CACHE_STEP_VOXELS
-    var cache_origin_z: int = floori(float(start_voxel_z - halo * step_voxels - HEIGHT_CACHE_STEP_VOXELS * 2) / float(HEIGHT_CACHE_STEP_VOXELS)) * HEIGHT_CACHE_STEP_VOXELS
-    var cache_end_x: int = start_voxel_x + size_voxels_x + halo * step_voxels + HEIGHT_CACHE_STEP_VOXELS * 2
-    var cache_end_z: int = start_voxel_z + size_voxels_z + halo * step_voxels + HEIGHT_CACHE_STEP_VOXELS * 2
-    var cache_width: int = ceili(float(cache_end_x - cache_origin_x) / float(HEIGHT_CACHE_STEP_VOXELS)) + 1
-    var cache_depth: int = ceili(float(cache_end_z - cache_origin_z) / float(HEIGHT_CACHE_STEP_VOXELS)) + 1
+    var cache_step_voxels: int = maxi(HEIGHT_CACHE_STEP_VOXELS, step_voxels)
+    var cache_origin_x: int = floori(float(start_voxel_x - halo * step_voxels - cache_step_voxels * 2) / float(cache_step_voxels)) * cache_step_voxels
+    var cache_origin_z: int = floori(float(start_voxel_z - halo * step_voxels - cache_step_voxels * 2) / float(cache_step_voxels)) * cache_step_voxels
+    var cache_end_x: int = start_voxel_x + size_voxels_x + halo * step_voxels + cache_step_voxels * 2
+    var cache_end_z: int = start_voxel_z + size_voxels_z + halo * step_voxels + cache_step_voxels * 2
+    var cache_width: int = ceili(float(cache_end_x - cache_origin_x) / float(cache_step_voxels)) + 1
+    var cache_depth: int = ceili(float(cache_end_z - cache_origin_z) / float(cache_step_voxels)) + 1
     var height_cache := PackedInt32Array()
     height_cache.resize(cache_width * cache_depth)
     for cz in range(cache_depth):
-        var cache_z: float = float(cache_origin_z + cz * HEIGHT_CACHE_STEP_VOXELS)
+        var cache_z: float = float(cache_origin_z + cz * cache_step_voxels)
         for cx in range(cache_width):
-            var cache_x: float = float(cache_origin_x + cx * HEIGHT_CACHE_STEP_VOXELS)
+            var cache_x: float = float(cache_origin_x + cx * cache_step_voxels)
             height_cache[cz * cache_width + cx] = _sample_height_voxels(cache_x, cache_z, generator, world_min_x, world_min_z, world_size_voxels)
 
     # The source samples are 0.5 m apart; outputs stay quantised to the 10 cm voxel grid.
@@ -82,7 +83,7 @@ func build_mesh_data(job_data: Dictionary) -> Dictionary:
         var global_cell_z: float = float(start_voxel_z) + float(gz - halo) * float(step_voxels) + float(step_voxels) * 0.5
         for gx in range(grid_width):
             var global_cell_x: float = float(start_voxel_x) + float(gx - halo) * float(step_voxels) + float(step_voxels) * 0.5
-            raw_heights[gz * grid_width + gx] = _cached_height_voxels(global_cell_x, global_cell_z, height_cache, cache_width, cache_depth, cache_origin_x, cache_origin_z, world_size_voxels)
+            raw_heights[gz * grid_width + gx] = _cached_height_voxels(global_cell_x, global_cell_z, height_cache, cache_width, cache_depth, cache_origin_x, cache_origin_z, cache_step_voxels, world_size_voxels)
     var heights: PackedInt32Array = raw_heights
 
     var surface_types := PackedByteArray()
@@ -140,7 +141,7 @@ func build_mesh_data(job_data: Dictionary) -> Dictionary:
             var global_z: float = float(start_voxel_z + cz * collision_step_voxels)
             for cx in range(collision_width):
                 var global_x: float = float(start_voxel_x + cx * collision_step_voxels)
-                var height_voxels: int = _cached_height_voxels(global_x, global_z, height_cache, cache_width, cache_depth, cache_origin_x, cache_origin_z, world_size_voxels)
+                var height_voxels: int = _cached_height_voxels(global_x, global_z, height_cache, cache_width, cache_depth, cache_origin_x, cache_origin_z, cache_step_voxels, world_size_voxels)
                 # HeightMapShape3D has a uniform 0.2 scale, so halve the 10 cm voxel count.
                 collision_heights[cz * collision_width + cx] = float(height_voxels) * 0.5
         result["collision_height_map"] = {
@@ -246,11 +247,11 @@ func _build_exposed_side_faces(
             if h > h_south:
                 _add_segmented_side_face(Vector3(x0, float(h_south) * VOXEL_SIZE, z1), Vector3(x1, float(h_south) * VOXEL_SIZE, z1), Vector3(x1, float(h) * VOXEL_SIZE, z1), Vector3(x0, float(h) * VOXEL_SIZE, z1), Vector3(0.0, 0.0, 1.0), h_south, h, top_material, false)
 
-func _cached_height_voxels(gx: float, gz: float, cache: PackedInt32Array, cache_width: int, cache_depth: int, origin_x: int, origin_z: int, world_size_voxels: int) -> int:
+func _cached_height_voxels(gx: float, gz: float, cache: PackedInt32Array, cache_width: int, cache_depth: int, origin_x: int, origin_z: int, cache_step_voxels: int, world_size_voxels: int) -> int:
     if gx < 0.0 or gz < 0.0 or gx >= float(world_size_voxels) or gz >= float(world_size_voxels):
         return 0
-    var fx: float = (gx - float(origin_x)) / float(HEIGHT_CACHE_STEP_VOXELS)
-    var fz: float = (gz - float(origin_z)) / float(HEIGHT_CACHE_STEP_VOXELS)
+    var fx: float = (gx - float(origin_x)) / float(cache_step_voxels)
+    var fz: float = (gz - float(origin_z)) / float(cache_step_voxels)
     var bx: int = floori(fx)
     var bz: int = floori(fz)
     var tx: float = clampf(fx - float(bx), 0.0, 1.0)
