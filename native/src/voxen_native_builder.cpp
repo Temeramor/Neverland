@@ -672,6 +672,7 @@ struct MeshBuild {
         Dictionary out;
         out["coord"] = coord;
         out["lod"] = lod;
+        out["step_voxels"] = step_voxels;
         out["neighbor_lods_used"] = neighbor_lods.duplicate(true);
         out["debug_lod_colors"] = debug_lod_colors;
         out["vertices"] = packed_vertices;
