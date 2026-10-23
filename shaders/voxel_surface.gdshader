@@ -209,21 +209,46 @@ void fragment() {
     // blend towards broad palette variation to prevent shimmering without enlarging texels.
     // Distance-based blending is identical on every face of a given voxel.
     float detail_distance = distance(CAMERA_POSITION_WORLD, voxel_center_world);
-    float grass_detail_weight = 1.0 - smoothstep(80.0, 240.0, detail_distance);
+    float grass_detail_weight = 1.0 - smoothstep(100.0, 360.0, detail_distance);
+    float rock_detail_weight = 1.0 - smoothstep(220.0, 520.0, detail_distance);
 
     if (debug_lod_colors) {
         float variation = mix(0.92, 1.08, pick);
         ALBEDO = clamp(COLOR.rgb * variation, vec3(0.0), vec3(1.0));
     } else if (COLOR.g > COLOR.r * 1.35) {
-        vec3 detailed_grass = grass_pixel(pixel_cell, pixel_center);
         vec3 broad_grass = grass_palette(clamp(0.18 + broad_tone * 0.66, 0.001, 0.999));
-        ALBEDO = mix(broad_grass, detailed_grass, grass_detail_weight);
+        if (detail_distance < 140.0) {
+            ALBEDO = grass_pixel(pixel_cell, pixel_center);
+        } else if (detail_distance < 360.0) {
+            vec3 detailed_grass = grass_pixel(pixel_cell, pixel_center);
+            ALBEDO = mix(broad_grass, detailed_grass, grass_detail_weight);
+        } else {
+            ALBEDO = broad_grass;
+        }
     } else if (COLOR.r > COLOR.g * 1.15) {
-        vec3 color = soil_palette(pick);
-        color *= mix(0.90, 1.08, broad_tone);
-        ALBEDO = color;
+        vec3 broad_soil = soil_palette(clamp(0.18 + broad_tone * 0.64, 0.001, 0.999));
+        if (detail_distance < 160.0) {
+            vec3 color = soil_palette(pick);
+            color *= mix(0.90, 1.08, broad_tone);
+            ALBEDO = color;
+        } else if (detail_distance < 420.0) {
+            vec3 color = soil_palette(pick);
+            color *= mix(0.90, 1.08, broad_tone);
+            ALBEDO = mix(broad_soil, color, 1.0 - smoothstep(160.0, 420.0, detail_distance));
+        } else {
+            ALBEDO = broad_soil;
+        }
     } else {
-        ALBEDO = rock_pixel(pixel_cell, pixel_center);
+        // At long range, skip Voronoi-crack evaluation entirely. A continuous macro
+        // palette keeps the mountains readable while avoiding sub-pixel crack shimmer.
+        vec3 distant_rock = rock_palette(clamp(0.18 + broad_tone * 0.66, 0.001, 0.999));
+        if (detail_distance < 220.0) {
+            ALBEDO = rock_pixel(pixel_cell, pixel_center);
+        } else if (detail_distance < 520.0) {
+            ALBEDO = mix(distant_rock, rock_pixel(pixel_cell, pixel_center), rock_detail_weight);
+        } else {
+            ALBEDO = distant_rock;
+        }
     }
     ROUGHNESS = 0.96;
 }
