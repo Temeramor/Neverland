@@ -1,6 +1,14 @@
-# Neverland 0.1.0.4
+# Neverland 0.1.0.5
 
 Neverland is a procedural first-person landscape exploration prototype built with Godot 4.7.2. This branch integrates **VoxEn 0.3.5** for streamed block-voxel terrain while preserving Neverland's original menu, sky/time-of-day system, weather controls, player controller, desktop input, Android touch controls and flight mode.
+
+## Changes in 0.1.0.5
+
+- **Consistent real shadows:** removed the obsolete scene reference to the deleted shadow proxy. Every visible voxel LOD casts its own terrain shadows; broad mountain shadows therefore come directly from the same terrain meshes shown to the player.
+- **Balanced face lighting:** environment ambient light is enabled, direct light no longer darkens faces solely because their normal points away from the light, and a subtle emission baseline keeps occluded texture colours readable. Shadow attenuation still applies, so this is not an unshadowed/emissive material.
+- **LOD verification:** extended the hierarchy smoke test to check the sampling stride for all seven levels (0.2, 0.4, 0.8, 1.6, 3.2, 6.4 and 12.8 m), in addition to distance bands, tile footprints and map-edge clipping.
+- **Scene cleanup:** the world scene no longer references a separate shadow proxy that is not present in the repository.
+- **Version:** `project.godot` and `VERSION` both report `0.1.0.5`.
 
 ## Changes in 0.1.0.4
 
@@ -14,7 +22,7 @@ Neverland is a procedural first-person landscape exploration prototype built wit
 - **Distance-adaptive material detail:** grass/soil pixels simplify gradually and rock Voronoi cracks fade away by 520 m; the shader stops evaluating detailed rock cracks at greater distances.
 - **Voxel shadows and softer face lighting:** every visible LOD casts its own terrain shadows again. The voxel shader keeps direct illumination orientation-independent to soften the bright-top/dark-side band, while shadow attenuation, environment ambient light and a small emission baseline preserve mountain shadows without letting shadowed textures collapse toward black.
 - **Mobile shader lighting:** per-pixel lighting is enabled on mobile so the flat-lit shader still samples the terrain shadows.
-- **Version:** `project.godot` and `VERSION` both report `0.1.0.4`.
+- **Version:** `project.godot` and `VERSION` both report `0.1.0.5`.
 
 ## Run
 
@@ -84,6 +92,11 @@ godot --headless --path . --script res://tests/lod_hierarchy_smoke_test.gd
 The terrain smoke test checks deterministic terrain, the mountain profile, terrain density, and proportional mountain scaling. The LOD hierarchy test checks all seven distance bands, tile footprint scaling, and edge truncation at the 10 km world boundary.
 
 ## Version history
+
+### 0.1.0.5
+- Removed the stale proxy scene reference; all visible voxel LODs cast real shadows.
+- Softened the face-lighting contrast while retaining real shadow attenuation and ambient fill.
+- Expanded the hierarchy smoke test to verify mesh sampling strides.
 
 ### 0.1.0.4
 - Added hierarchical full-map voxel coverage and parent-fallback visibility while finer child tiles build.
