@@ -63,6 +63,7 @@ var _apply_wait_p95_cached_usec: float = 0.0
 var _build_estimate_refresh_timer: float = 0.0
 var _max_queue_wait_usec: int = 0
 var _stale_result_count: int = 0
+var _world_started: bool = false
 
 func _ready() -> void:
     _world_size_voxels = int(round(world_size_m / VOXEL_SIZE))
@@ -86,6 +87,7 @@ func _ready() -> void:
         _startup_load_pending = true
 
     if auto_start_on_ready:
+        _world_started = true
         _refresh_streaming()
 
 func _process(delta: float) -> void:
@@ -95,7 +97,7 @@ func _process(delta: float) -> void:
         _refresh_build_estimate_cache()
 
     _refresh_timer += delta
-    if _refresh_timer >= streaming_refresh_interval_s:
+    if _refresh_timer >= streaming_refresh_interval_s and _world_started:
         _refresh_timer = 0.0
         if _player != null:
             var player_position := Vector2(_player.global_position.x, _player.global_position.z)
@@ -135,6 +137,7 @@ func regenerate_with_random_seed() -> void:
 
 func regenerate_with_seed(new_seed: int) -> void:
     # Existing worker tasks cannot be cancelled safely; their epoch makes their results stale.
+    _world_started = true
     _generation_epoch += 1
     seed_value = new_seed
     _queued.clear()
