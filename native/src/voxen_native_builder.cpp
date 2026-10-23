@@ -156,7 +156,7 @@ struct NoiseSet {
         if (height_m <= 19.0 || soil->get_noise_2d(x * 0.045, z * 0.045) > 0.59) return SOIL;
         return GRASS;
     }
-}
+};
 
 Color rgb8(int r, int g, int b, double a = 1.0) {
     return Color(static_cast<double>(r) / 255.0,
