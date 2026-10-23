@@ -113,6 +113,7 @@ func build_mesh_data(job_data: Dictionary) -> Dictionary:
     result = {
         "coord": coord,
         "lod": lod,
+        "step_voxels": step_voxels,
         "neighbor_lods_used": neighbor_lods.duplicate(true),
         "debug_lod_colors": debug_lod_colors,
         "vertices": _vertices,
