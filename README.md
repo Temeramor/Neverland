@@ -113,7 +113,7 @@ godot --headless --path . --script res://tests/neverland_voxen_smoke_test.gd
 godot --headless --path . --script res://tests/lod_hierarchy_smoke_test.gd
 ~~~
 
-The terrain smoke test checks deterministic terrain, the mountain profile, terrain density, and proportional mountain scaling. The LOD hierarchy test checks all seven distance bands, tile footprint scaling, and edge truncation at the 10 km world boundary.
+The terrain smoke test checks deterministic terrain, the mountain profile, terrain density, and proportional mountain scaling. The LOD hierarchy test checks the default and scaled distance bands, all four distant-detail biases, tile footprint scaling, and edge truncation at the 10 km world boundary.
 
 ## Version history
 
