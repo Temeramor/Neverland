@@ -7,7 +7,7 @@ Neverland is a procedural first-person landscape exploration prototype built wit
 - **Consistent real shadows:** removed the obsolete scene reference to the deleted shadow proxy. Every visible voxel LOD casts its own terrain shadows; broad mountain shadows therefore come directly from the same terrain meshes shown to the player.
 - **Balanced face lighting:** environment ambient light is enabled, direct light no longer darkens faces solely because their normal points away from the light, and a subtle emission baseline keeps occluded texture colours readable. Shadow attenuation still applies, so this is not an unshadowed/emissive material.
 - **LOD verification:** extended the hierarchy smoke test to check the sampling stride for all seven levels (0.2, 0.4, 0.8, 1.6, 3.2, 6.4 and 12.8 m), in addition to distance bands, tile footprints and map-edge clipping.
-- **Adaptive height cache:** the height cache stays at 0.5 m for the two finest levels, then grows with the mesh sampling step for distant LODs. A 2048 m LOD6 tile now needs only about 160 × 160 height-cache samples rather than a 0.5 m grid with thousands of samples per axis. Native C++ and GDScript meshers use the same adaptive rule.
+- **Adaptive height cache:** the height cache stays at 0.5 m for the two finest levels, then grows with the mesh sampling step for distant LODs. A 2048 m LOD6 tile now needs only about 170 × 170 height-cache samples rather than a 0.5 m grid with more than 4,000 samples per axis. Native C++ and GDScript meshers use the same adaptive rule.
 - **Scene cleanup:** the world scene no longer references a separate shadow proxy that is not present in the repository.
 - **Version:** `project.godot` and `VERSION` both report `0.1.0.5`.
 
