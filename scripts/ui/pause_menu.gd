@@ -269,7 +269,7 @@ func _make_divider() -> TextureRect:
     divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
     divider.texture = load("res://assets/ui/divider.png") as Texture2D
     divider.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-    divider.stretch_mode = TextureRect.STRETCH_KEEP
+    divider.stretch_mode = TextureRect.STRETCH_SCALE
     divider.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     return divider
 
