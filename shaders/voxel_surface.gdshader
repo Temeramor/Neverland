@@ -10,32 +10,6 @@ uniform vec4 skirt_visibility = vec4(1.0);
 varying vec3 world_position;
 varying vec3 world_normal;
 
-float voronoi_edge(vec2 p) {
-    vec2 base_cell = floor(p);
-    vec2 local = fract(p);
-    float nearest = 10.0;
-    float second_nearest = 10.0;
-    for (int y = -1; y <= 1; y++) {
-        for (int x = -1; x <= 1; x++) {
-            vec2 offset_cell = vec2(float(x), float(y));
-            vec2 cell = base_cell + offset_cell;
-            vec2 random_point = vec2(
-                hash21(cell + vec2(3.1, 8.7)),
-                hash21(cell + vec2(19.4, 2.6))
-            ) * 0.72 + 0.14;
-            vec2 delta = offset_cell + random_point - local;
-            float distance_squared = dot(delta, delta);
-            if (distance_squared < nearest) {
-                second_nearest = nearest;
-                nearest = distance_squared;
-            } else if (distance_squared < second_nearest) {
-                second_nearest = distance_squared;
-            }
-        }
-    }
-    return sqrt(second_nearest) - sqrt(nearest);
-}
-
 vec3 palette_color(vec3 srgb) {
     return pow(srgb, vec3(2.2));
 }
@@ -60,6 +34,32 @@ float value_noise(vec2 p) {
     float c = hash21(i + vec2(0.0, 1.0));
     float d = hash21(i + vec2(1.0, 1.0));
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+
+float voronoi_edge(vec2 p) {
+    vec2 base_cell = floor(p);
+    vec2 local = fract(p);
+    float nearest = 10.0;
+    float second_nearest = 10.0;
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+            vec2 offset_cell = vec2(float(x), float(y));
+            vec2 cell = base_cell + offset_cell;
+            vec2 random_point = vec2(
+                hash21(cell + vec2(3.1, 8.7)),
+                hash21(cell + vec2(19.4, 2.6))
+            ) * 0.72 + 0.14;
+            vec2 delta = offset_cell + random_point - local;
+            float distance_squared = dot(delta, delta);
+            if (distance_squared < nearest) {
+                second_nearest = nearest;
+                nearest = distance_squared;
+            } else if (distance_squared < second_nearest) {
+                second_nearest = distance_squared;
+            }
+        }
+    }
+    return sqrt(second_nearest) - sqrt(nearest);
 }
 
 // Keep the original Neverland grass palette (sRGB swatches converted to linear light).
@@ -248,15 +248,6 @@ void fragment() {
         }
     }
     vec3 normal = normalize(world_normal);
-    vec2 projected;
-    if (abs(normal.y) >= abs(normal.x) && abs(normal.y) >= abs(normal.z)) {
-        projected = world_position.xz;
-    } else if (abs(normal.x) >= abs(normal.z)) {
-        projected = world_position.zy;
-    } else {
-        projected = world_position.xy;
-    }
-
     // 0.1 m texel cells align with the voxel grid and remain world-locked across chunks.
     // Quantise a point slightly inside the voxel, so top and side faces share one colour cell.
     vec3 voxel_cell_3d = floor((world_position - normal * 0.001) / max(pixel_size, 0.1));
@@ -269,12 +260,9 @@ void fragment() {
 
     // Keep the underlying colour cell fixed at 10 cm. When it becomes sub-pixel,
     // blend towards broad palette variation to prevent shimmering without enlarging texels.
-    float pixel_footprint = max(length(dFdx(projected)), length(dFdy(projected)));
-    float grass_detail_weight = 1.0 - smoothstep(
-        max(pixel_size, 0.1) * 0.85,
-        max(pixel_size, 0.1) * 2.2,
-        pixel_footprint
-    );
+    // Distance-based blending is identical on every face of a given voxel.
+    float detail_distance = distance(CAMERA_POSITION_WORLD, world_position);
+    float grass_detail_weight = 1.0 - smoothstep(80.0, 240.0, detail_distance);
 
     if (debug_lod_colors) {
         float variation = mix(0.92, 1.08, pick);
