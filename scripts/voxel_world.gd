@@ -783,7 +783,9 @@ func _collect_lod_tiles(lod_index: int, tile_x: int, tile_z: int, player_xz: Vec
     var was_split: bool = bool(previous.get("fallback", false))
     var split: bool = false
     if lod_index > 0:
-        var threshold: float = boundary + lod_hysteresis_m if was_split else maxf(0.0, boundary - lod_hysteresis_m)
+        # Keep hysteresis proportional when the shared LOD distance scale changes.
+        var scaled_hysteresis: float = lod_hysteresis_m * lod0_distance_m / 128.0
+        var threshold: float = boundary + scaled_hysteresis if was_split else maxf(0.0, boundary - scaled_hysteresis)
         split = nearest < threshold
     var center: Vector2 = bounds["center"]
     var req := {
