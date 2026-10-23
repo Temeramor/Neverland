@@ -81,14 +81,22 @@ func _run() -> void:
                 lod, expected_steps_voxels[lod], actual_step
             ])
 
-    world.set_lod_settings(0, 128.0)
-    var standard_steps: Array[int] = [2, 4, 8, 16, 32, 64, 128]
-    for lod in range(7):
-        var actual_step: int = world.get_mesh_step_voxels(lod)
-        if actual_step != standard_steps[lod]:
-            errors.append("Standard LOD%d stride expected %d voxels, got %d" % [
-                lod, standard_steps[lod], actual_step
-            ])
+    var step_profiles: Array = [
+        [0, [2, 4, 8, 16, 32, 64, 128]],
+        [1, [2, 8, 16, 32, 64, 128, 256]],
+        [2, [2, 16, 32, 64, 128, 256, 512]],
+        [3, [2, 32, 64, 128, 256, 512, 1024]]
+    ]
+    for profile in step_profiles:
+        world.set_lod_settings(int(profile[0]), 128.0)
+        var expected_profile: Array = profile[1]
+        for lod in range(7):
+            var actual_step: int = world.get_mesh_step_voxels(lod)
+            var expected_step: int = int(expected_profile[lod])
+            if actual_step != expected_step:
+                errors.append("Detail bias %d LOD%d stride expected %d voxels, got %d" % [
+                    int(profile[0]), lod, expected_step, actual_step
+                ])
     world.set_lod_settings(1, 128.0)
 
     var root_count: int = ceili(float(world._world_size_voxels) / float(world._chunk_size_voxels * 64))
