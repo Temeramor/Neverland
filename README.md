@@ -5,6 +5,7 @@ Neverland is a procedural first-person landscape exploration prototype built wit
 ## Changes in 0.1.0.7
 
 - **Pause menu:** Esc opens the pause menu on PC. Android receives an on-screen pause button in the top-right HUD. The pause menu offers Resume, Settings and Return to Main Menu.
+- **Original lighting restored:** removed the artificial emission fill and custom orientation-independent light function. Voxel faces respond to the actual light direction again, including the expected brighter tops and darker sides.
 - **Live LOD settings:** the pause settings page changes the distant mesh sampling stride from standard to progressively coarser levels. LOD0 stays at the original 2-voxel mesh step; the default coarse setting changes LOD1 from 4 to 8 voxels per cell, LOD2 from 8 to 16, and continues this progression for farther levels.
 - **One LOD distance scale:** the player can choose a 32–256 m LOD0 boundary. Every subsequent band doubles from that value (for example, with 64 m: LOD0 0–64 m, LOD1 64–128 m, LOD2 128–256 m, and so on). LOD hysteresis scales with the same base distance.
 - **Mesh rebuild correctness:** chunks rebuild if their requested mesh stride changes; worker and completed results using an outdated stride are rejected.
