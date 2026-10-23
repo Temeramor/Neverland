@@ -320,8 +320,11 @@ func _apply_control_styles() -> void:
     # OptionButton's PopupMenu is styled separately so the expanded list matches
     # the pixel-art frame and colors used by the main menu.
     var popup := _detail_option.get_popup()
-    popup.add_theme_stylebox_override(
-        "panel",
+    var popup_theme := Theme.new()
+    popup_theme.default_font = theme.default_font
+    popup_theme.default_font_size = 13
+    popup_theme.set_stylebox(
+        "panel", "PopupMenu",
         _style_texture("res://assets/ui/panel_texture.png", 12.0, 12.0, 10.0, 12.0, 10.0)
     )
     var popup_hover := StyleBoxFlat.new()
@@ -329,12 +332,12 @@ func _apply_control_styles() -> void:
     popup_hover.border_color = COLOR_GOLD
     popup_hover.set_border_width_all(1)
     popup_hover.set_corner_radius_all(0)
-    popup.add_theme_stylebox_override("hover", popup_hover)
-    popup.add_theme_color_override("font_color", COLOR_TEXT)
-    popup.add_theme_color_override("font_hover_color", COLOR_GOLD)
-    popup.add_theme_color_override("font_disabled_color", COLOR_MUTED)
-    popup.add_theme_font_size_override("font_size", 13)
-    popup.theme = theme
+    popup_theme.set_stylebox("hover", "PopupMenu", popup_hover)
+    popup_theme.set_color("font_color", "PopupMenu", COLOR_TEXT)
+    popup_theme.set_color("font_hover_color", "PopupMenu", COLOR_GOLD)
+    popup_theme.set_color("font_disabled_color", "PopupMenu", COLOR_MUTED)
+    popup_theme.set_font_size("font_size", "PopupMenu", 13)
+    popup.theme = popup_theme
 
     var slider_track := StyleBoxFlat.new()
     slider_track.bg_color = Color("#1B3432")
