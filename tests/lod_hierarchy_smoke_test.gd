@@ -34,9 +34,27 @@ func _run() -> void:
         var distance: float = float(sample[0])
         var expected_lod: int = int(sample[1])
         if world._lod_for_distance(distance) != expected_lod:
-            errors.append("Distance %.1f m expected LOD%d, got LOD%d" % [
+            errors.append("Default LOD distance %.1f m expected LOD%d, got LOD%d" % [
                 distance, expected_lod, world._lod_for_distance(distance)
             ])
+
+    # Every boundary follows a single LOD0 distance and doubles at the next level.
+    world.set_lod_settings(1, 64.0)
+    var scaled_samples: Array = [
+        [0.0, 0], [63.9, 0], [64.0, 1],
+        [127.9, 1], [128.0, 2], [255.9, 2],
+        [256.0, 3], [511.9, 3], [512.0, 4],
+        [1023.9, 4], [1024.0, 5], [2047.9, 5],
+        [2048.0, 6]
+    ]
+    for sample in scaled_samples:
+        var distance: float = float(sample[0])
+        var expected_lod: int = int(sample[1])
+        if world._lod_for_distance(distance) != expected_lod:
+            errors.append("Scaled LOD distance %.1f m expected LOD%d, got LOD%d" % [
+                distance, expected_lod, world._lod_for_distance(distance)
+            ])
+    world.set_lod_settings(1, 128.0)
 
     var expected_tile_sizes: Array[float] = [32.0, 64.0, 128.0, 256.0, 512.0, 1024.0, 2048.0]
     for lod in range(7):
@@ -48,7 +66,7 @@ func _run() -> void:
                 lod, expected_size, float(bounds["width"])
             ])
 
-    var expected_steps_voxels: Array[int] = [2, 4, 8, 16, 32, 64, 128]
+    var expected_steps_voxels: Array[int] = [2, 8, 16, 32, 64, 128, 256]
     for lod in range(7):
         var requested: Dictionary = {}
         world._collect_lod_tiles(
@@ -59,9 +77,19 @@ func _run() -> void:
         var key: Vector2i = world._make_lod_key(lod, 0, 0)
         var actual_step: int = int(requested[key]["step_voxels"])
         if actual_step != expected_steps_voxels[lod]:
-            errors.append("LOD%d mesh stride expected %d voxels, got %d" % [
+            errors.append("Coarse default LOD%d stride expected %d voxels, got %d" % [
                 lod, expected_steps_voxels[lod], actual_step
             ])
+
+    world.set_lod_settings(0, 128.0)
+    var standard_steps: Array[int] = [2, 4, 8, 16, 32, 64, 128]
+    for lod in range(7):
+        var actual_step: int = world.get_mesh_step_voxels(lod)
+        if actual_step != standard_steps[lod]:
+            errors.append("Standard LOD%d stride expected %d voxels, got %d" % [
+                lod, standard_steps[lod], actual_step
+            ])
+    world.set_lod_settings(1, 128.0)
 
     var root_count: int = ceili(float(world._world_size_voxels) / float(world._chunk_size_voxels * 64))
     if root_count != 5:
