@@ -741,10 +741,18 @@ func _get_lod_tile_children(coord: Vector2i) -> Array[Vector2i]:
 
 func _all_lod_children_ready(children: Array[Vector2i]) -> bool:
     if children.is_empty():
-        return true
+        return false
     for key in children:
         var child: VoxelTerrainChunk = _chunks.get(key) as VoxelTerrainChunk
-        if child == null or not child.mesh_ready:
+        var target_request: Dictionary = _wanted.get(key, {})
+        if child == null or not child.mesh_ready or target_request.is_empty():
+            return false
+        # A resident mesh from an earlier distance/detail setting is not ready for
+        # hierarchy hand-off. Keep the parent fallback visible until this exact LOD
+        # and sampling stride have been applied.
+        if child.lod != int(target_request.get("lod", -1)):
+            return false
+        if child.mesh_step_voxels != int(target_request.get("step_voxels", -1)):
             return false
     return true
 
@@ -764,7 +772,7 @@ func _update_lod_subtree_visibility(coord: Vector2i, ancestors_visible: bool) ->
     var children: Array[Vector2i] = []
     if parent:
         children = _get_lod_tile_children(coord)
-    var children_ready: bool = _all_lod_children_ready(children) if parent else false
+    var children_ready: bool = parent and not children.is_empty() and _all_lod_children_ready(children)
     var chunk: VoxelTerrainChunk = _chunks.get(coord) as VoxelTerrainChunk
     var node_active: bool = ancestors_visible and (not parent or not children_ready) and chunk != null and chunk.mesh_ready
     if chunk != null:
