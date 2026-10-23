@@ -1,6 +1,15 @@
-# Neverland 0.1.0.5
+# Neverland 0.1.0.6
 
 Neverland is a procedural first-person landscape exploration prototype built with Godot 4.7.2. This branch integrates **VoxEn 0.3.5** for streamed block-voxel terrain while preserving Neverland's original menu, sky/time-of-day system, weather controls, player controller, desktop input, Android touch controls and flight mode.
+
+## Changes in 0.1.0.6
+
+- **Fixed LOD visibility reconciliation:** leaf tiles now initialise a typed `Array[Vector2i]` and populate it only when the tile has children. This avoids Godot 4.7's runtime type error from assigning an untyped ternary `[]`, which interrupted hierarchy updates during world startup.
+- **Loading progression:** the startup flow can now keep reconciling completed chunk meshes without the leaf-tile type exception aborting the update.
+- **Regression check:** the LOD hierarchy smoke test exercises visibility reconciliation on a leaf tile with no children.
+- **Version:** `project.godot` and `VERSION` both report `0.1.0.6`.
+
+
 
 ## Changes in 0.1.0.5
 
@@ -94,6 +103,11 @@ godot --headless --path . --script res://tests/lod_hierarchy_smoke_test.gd
 The terrain smoke test checks deterministic terrain, the mountain profile, terrain density, and proportional mountain scaling. The LOD hierarchy test checks all seven distance bands, tile footprint scaling, and edge truncation at the 10 km world boundary.
 
 ## Version history
+
+### 0.1.0.6
+- Fixed the typed empty-array runtime error in LOD hierarchy reconciliation.
+- Added a regression test for a leaf tile with no children.
+- Bumped project version to 0.1.0.6.
 
 ### 0.1.0.5
 - Removed the stale proxy scene reference; all visible voxel LODs cast real shadows.
