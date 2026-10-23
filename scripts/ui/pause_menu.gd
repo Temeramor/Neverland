@@ -7,9 +7,12 @@ signal quit_to_menu_requested
 
 const COLOR_BG: Color = Color("#172321")
 const COLOR_PANEL: Color = Color("#263735")
+const COLOR_WOOD: Color = Color("#35271F")
 const COLOR_GOLD: Color = Color("#D9A441")
+const COLOR_TEAL: Color = Color("#244C4B")
+const COLOR_GREEN: Color = Color("#6D8B45")
 const COLOR_TEXT: Color = Color("#E8D7B3")
-const COLOR_MUTED: Color = Color("#B8B39A")
+const COLOR_MUTED: Color = Color("#B8A986")
 
 var _voxel_world: Node
 var _main_panel: PanelContainer
@@ -29,6 +32,7 @@ func configure(voxel_world: Node) -> void:
 func _ready() -> void:
     process_mode = Node.PROCESS_MODE_ALWAYS
     set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     mouse_filter = Control.MOUSE_FILTER_STOP
     _build_ui()
     visible = false
@@ -74,7 +78,7 @@ func _build_ui() -> void:
     var pixel_font := load("res://assets/ui/pixel_ui.fnt") as Font
     var pause_theme := Theme.new()
     pause_theme.default_font = pixel_font if pixel_font != null else ThemeDB.fallback_font
-    pause_theme.default_font_size = 15
+    pause_theme.default_font_size = 16
     theme = pause_theme
 
     var shade := ColorRect.new()
@@ -99,11 +103,13 @@ func _build_ui() -> void:
     var title := Label.new()
     title.text = "ПАУЗА"
     title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    title.add_theme_font_size_override("font_size", 26)
+    title.add_theme_font_size_override("font_size", 34)
     title.add_theme_color_override("font_color", COLOR_GOLD)
+    title.add_theme_color_override("font_outline_color", Color("#211812"))
+    title.add_theme_constant_override("outline_size", 2)
     main_stack.add_child(title)
 
-    var resume_button := _make_button("Продолжить")
+    var resume_button := _make_button("Продолжить", true)
     resume_button.pressed.connect(close_pause)
     main_stack.add_child(resume_button)
 
@@ -125,8 +131,10 @@ func _build_ui() -> void:
     var settings_title := Label.new()
     settings_title.text = "НАСТРОЙКИ ДЕТАЛИЗАЦИИ"
     settings_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-    settings_title.add_theme_font_size_override("font_size", 19)
+    settings_title.add_theme_font_size_override("font_size", 22)
     settings_title.add_theme_color_override("font_color", COLOR_GOLD)
+    settings_title.add_theme_color_override("font_outline_color", Color("#211812"))
+    settings_title.add_theme_constant_override("outline_size", 1)
     settings_stack.add_child(settings_title)
 
     _settings_scroll = ScrollContainer.new()
@@ -211,62 +219,143 @@ func _build_ui() -> void:
     back_button.pressed.connect(_show_main_page)
     settings_buttons.add_child(back_button)
 
-    var done_button := _make_button("Готово")
+    var done_button := _make_button("Готово", true)
     done_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     done_button.pressed.connect(_show_main_page)
     settings_buttons.add_child(done_button)
 
+    _apply_control_styles()
     _refresh_distance_labels()
     _show_main_page()
+
+
+func _style_texture(path: String, border: float, content_left: float, content_top: float, content_right: float, content_bottom: float) -> StyleBoxTexture:
+    var style := StyleBoxTexture.new()
+    style.texture = load(path) as Texture2D
+    style.texture_margin_left = border
+    style.texture_margin_top = border
+    style.texture_margin_right = border
+    style.texture_margin_bottom = border
+    style.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE
+    style.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_TILE
+    style.content_margin_left = content_left
+    style.content_margin_top = content_top
+    style.content_margin_right = content_right
+    style.content_margin_bottom = content_bottom
+    return style
+
+
+func _button_style_texture(path: String) -> StyleBoxTexture:
+    var style := StyleBoxTexture.new()
+    style.texture = load(path) as Texture2D
+    style.texture_margin_left = 16.0
+    style.texture_margin_right = 16.0
+    style.texture_margin_top = 16.0
+    style.texture_margin_bottom = 12.0
+    style.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE
+    style.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_TILE
+    style.content_margin_left = 22.0
+    style.content_margin_right = 22.0
+    style.content_margin_top = 13.0
+    style.content_margin_bottom = 10.0
+    return style
 
 
 func _make_panel(panel_name: String) -> PanelContainer:
     var panel := PanelContainer.new()
     panel.name = panel_name
     panel.mouse_filter = Control.MOUSE_FILTER_STOP
-    var style := StyleBoxFlat.new()
-    style.bg_color = COLOR_PANEL
-    style.border_color = COLOR_GOLD
-    style.set_border_width_all(2)
-    style.set_corner_radius_all(0)
-    style.content_margin_left = 18.0
-    style.content_margin_right = 18.0
-    style.content_margin_top = 16.0
-    style.content_margin_bottom = 16.0
-    panel.add_theme_stylebox_override("panel", style)
+    panel.add_theme_stylebox_override(
+        "panel",
+        _style_texture("res://assets/ui/panel_texture.png", 12.0, 23.0, 19.0, 23.0, 19.0)
+    )
+    panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     return panel
 
 
 func _make_label(text_value: String, highlighted: bool) -> Label:
     var label := Label.new()
     label.text = text_value
-    label.add_theme_font_size_override("font_size", 14 if highlighted else 12)
-    label.add_theme_color_override("font_color", COLOR_GOLD if highlighted else COLOR_MUTED)
+    label.add_theme_font_size_override("font_size", 15 if highlighted else 13)
+    label.add_theme_color_override("font_color", COLOR_GOLD if highlighted else COLOR_TEXT)
     return label
 
 
-func _make_button(caption: String) -> Button:
+func _make_button(caption: String, primary: bool = false) -> Button:
     var button := Button.new()
     button.text = caption
-    button.custom_minimum_size = Vector2(0.0, 46.0)
+    button.custom_minimum_size = Vector2(0.0, 52.0 if primary else 48.0)
     button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     button.focus_mode = Control.FOCUS_NONE
-    button.add_theme_color_override("font_color", COLOR_TEXT)
-    button.add_theme_color_override("font_hover_color", COLOR_GOLD)
-    button.add_theme_color_override("font_pressed_color", COLOR_GOLD)
-    var normal := StyleBoxFlat.new()
-    normal.bg_color = COLOR_BG
-    normal.border_color = Color("#6D7554")
-    normal.set_border_width_all(1)
-    normal.set_corner_radius_all(0)
+    var normal := _button_style_texture(
+        "res://assets/ui/button_primary.png" if primary else "res://assets/ui/button_secondary.png"
+    )
+    var hover := _button_style_texture("res://assets/ui/button_hover.png")
+    var pressed := _button_style_texture("res://assets/ui/button_pressed.png")
     button.add_theme_stylebox_override("normal", normal)
-    var hover := normal.duplicate() as StyleBoxFlat
-    hover.bg_color = Color("#354A43")
-    hover.border_color = COLOR_GOLD
-    hover.set_border_width_all(2)
     button.add_theme_stylebox_override("hover", hover)
-    button.add_theme_stylebox_override("pressed", hover)
+    button.add_theme_stylebox_override("pressed", pressed)
+    button.add_theme_stylebox_override("focus", hover)
+    button.add_theme_color_override("font_color", COLOR_WOOD if primary else COLOR_TEXT)
+    button.add_theme_color_override("font_hover_color", COLOR_WOOD)
+    button.add_theme_color_override("font_pressed_color", COLOR_TEXT)
+    button.add_theme_color_override("font_focus_color", COLOR_WOOD)
+    button.add_theme_font_size_override("font_size", 18 if primary else 16)
+    button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     return button
+
+
+func _apply_control_styles() -> void:
+    _detail_option.custom_minimum_size = Vector2(0.0, 48.0)
+    _detail_option.add_theme_stylebox_override("normal", _button_style_texture("res://assets/ui/button_secondary.png"))
+    _detail_option.add_theme_stylebox_override("hover", _button_style_texture("res://assets/ui/button_hover.png"))
+    _detail_option.add_theme_stylebox_override("pressed", _button_style_texture("res://assets/ui/button_pressed.png"))
+    _detail_option.add_theme_stylebox_override("focus", _button_style_texture("res://assets/ui/button_hover.png"))
+    _detail_option.add_theme_color_override("font_color", COLOR_TEXT)
+    _detail_option.add_theme_color_override("font_hover_color", COLOR_GOLD)
+    _detail_option.add_theme_color_override("font_pressed_color", COLOR_GOLD)
+    _detail_option.add_theme_font_size_override("font_size", 13)
+    _detail_option.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+    # OptionButton's PopupMenu is styled separately so the expanded list matches
+    # the pixel-art frame and colors used by the main menu.
+    var popup := _detail_option.get_popup()
+    popup.add_theme_stylebox_override(
+        "panel",
+        _style_texture("res://assets/ui/panel_texture.png", 12.0, 12.0, 10.0, 12.0, 10.0)
+    )
+    var popup_hover := StyleBoxFlat.new()
+    popup_hover.bg_color = COLOR_TEAL
+    popup_hover.border_color = COLOR_GOLD
+    popup_hover.set_border_width_all(1)
+    popup_hover.set_corner_radius_all(0)
+    popup.add_theme_stylebox_override("hover", popup_hover)
+    popup.add_theme_color_override("font_color", COLOR_TEXT)
+    popup.add_theme_color_override("font_hover_color", COLOR_GOLD)
+    popup.add_theme_color_override("font_disabled_color", COLOR_MUTED)
+    popup.add_theme_font_size_override("font_size", 13)
+    popup.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+    var slider_track := StyleBoxFlat.new()
+    slider_track.bg_color = Color("#1B3432")
+    slider_track.set_corner_radius_all(0)
+    slider_track.content_margin_top = 3.0
+    slider_track.content_margin_bottom = 3.0
+    var slider_fill := StyleBoxFlat.new()
+    slider_fill.bg_color = COLOR_GREEN
+    slider_fill.set_corner_radius_all(0)
+    var grabber := load("res://assets/ui/slider_grabber.png") as Texture2D
+    _distance_slider.add_theme_stylebox_override("slider", slider_track)
+    _distance_slider.add_theme_stylebox_override("grabber_area", slider_track)
+    _distance_slider.add_theme_stylebox_override("grabber_area_highlight", slider_fill)
+    _distance_slider.add_theme_icon_override("grabber", grabber)
+    _distance_slider.add_theme_icon_override("grabber_highlight", grabber)
+    _distance_slider.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+    _distance_value_label.add_theme_font_size_override("font_size", 16)
+    _distance_value_label.add_theme_color_override("font_color", COLOR_GOLD)
+    _distance_bands_label.add_theme_color_override("font_color", COLOR_TEXT)
+
+
 
 
 func _fit_to_viewport() -> void:
