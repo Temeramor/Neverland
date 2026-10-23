@@ -5,7 +5,7 @@ import sys
 from SCons.Script import Environment, Glob, SConscript, Variables, ARGUMENTS, Help
 
 libname = "voxen_native"
-local_env = Environment(tools=["default"], PLATFORM="")
+local_env = Environment(tools=["default"], PLATFORM="", ENV=os.environ.copy())
 opts = Variables([], ARGUMENTS)
 opts.Update(local_env)
 Help(opts.GenerateHelpText(local_env))
