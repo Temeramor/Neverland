@@ -60,7 +60,7 @@ func _ready() -> void:
     loading_screen.visible = false
 
     var gameplay_camera: Camera3D = $Player/CameraPivot/Camera3D
-    gameplay_camera.far = maxf(512.0, terrain.get_render_distance_m() * 1.25)
+    gameplay_camera.far = maxf(2200.0, terrain.get_render_distance_m() * 1.35)
     _configure_sky_system()
     _build_flight_status()
     _setup_weather_controls()
@@ -113,7 +113,7 @@ func begin_generation(seed_value: int) -> void:
     player.flight_speed_multiplier = GameSettings.flight_speed_multiplier
     player.flight_fov = GameSettings.flight_fov
     var gameplay_camera: Camera3D = $Player/CameraPivot/Camera3D
-    gameplay_camera.far = maxf(512.0, terrain.get_render_distance_m() * 1.25)
+    gameplay_camera.far = maxf(2200.0, terrain.get_render_distance_m() * 1.35)
 
     loading_screen.visible = true
     loading_screen.set_progress(0.0, "Подготавливаем генератор ландшафта...")
