@@ -108,6 +108,7 @@ func _build_ui() -> void:
     title.add_theme_color_override("font_outline_color", Color("#211812"))
     title.add_theme_constant_override("outline_size", 2)
     main_stack.add_child(title)
+    main_stack.add_child(_make_divider())
 
     var resume_button := _make_button("Продолжить", true)
     resume_button.pressed.connect(close_pause)
@@ -136,6 +137,7 @@ func _build_ui() -> void:
     settings_title.add_theme_color_override("font_outline_color", Color("#211812"))
     settings_title.add_theme_constant_override("outline_size", 1)
     settings_stack.add_child(settings_title)
+    settings_stack.add_child(_make_divider())
 
     _settings_scroll = ScrollContainer.new()
     _settings_scroll.name = "SettingsScroll"
@@ -259,6 +261,17 @@ func _button_style_texture(path: String) -> StyleBoxTexture:
     style.content_margin_top = 13.0
     style.content_margin_bottom = 10.0
     return style
+
+
+func _make_divider() -> TextureRect:
+    var divider := TextureRect.new()
+    divider.custom_minimum_size = Vector2(0.0, 16.0)
+    divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    divider.texture = load("res://assets/ui/divider.png") as Texture2D
+    divider.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+    divider.stretch_mode = TextureRect.STRETCH_KEEP
+    divider.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+    return divider
 
 
 func _make_panel(panel_name: String) -> PanelContainer:
