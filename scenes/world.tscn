@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/world_controller.gd" id="1_world"]
 [ext_resource type="Script" path="res://scripts/world/terrain_generator.gd" id="2_terrain"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" path="res://scenes/loading_screen.tscn" id="5_loading"]
 [ext_resource type="Script" path="res://scripts/sky/Sky3D.gd" id="6_sky3d"]
 [ext_resource type="Script" path="res://scripts/voxel_world.gd" id="7_voxen_world"]
+[ext_resource type="Script" path="res://scripts/terrain_shadow_proxy.gd" id="8_shadow_proxy"]
 
 [node name="World" type="Node3D"]
 script = ExtResource("1_world")
@@ -18,6 +19,9 @@ chunk_size_m = 32.0
 seed_value = 1337
 render_distance_m = 1536.0
 auto_start_on_ready = false
+
+[node name="TerrainShadowProxy" type="Node3D" parent="VoxelWorld"]
+script = ExtResource("8_shadow_proxy")
 
 [node name="Sky3D" type="WorldEnvironment" parent="."]
 script = ExtResource("6_sky3d")
