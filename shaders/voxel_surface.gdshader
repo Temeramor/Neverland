@@ -251,9 +251,11 @@ void fragment() {
     // 0.1 m texel cells align with the voxel grid and remain world-locked across chunks.
     // Quantise a point slightly inside the voxel, so top and side faces share one colour cell.
     vec3 voxel_cell_3d = floor((world_position - normal * 0.001) / max(pixel_size, 0.1));
+    vec3 voxel_center_world = (voxel_cell_3d + vec3(0.5)) * max(pixel_size, 0.1);
+    // The packed 2D cell is only a deterministic hash key; spatial noise uses real X/Z metres.
     vec2 pixel_cell = vec2(voxel_cell_3d.x + voxel_cell_3d.y * 37.0,
                            voxel_cell_3d.z + voxel_cell_3d.y * 17.0);
-    vec2 pixel_center = (pixel_cell + vec2(0.5)) * pixel_size;
+    vec2 pixel_center = voxel_center_world.xz;
     float broad_tone = value_noise(pixel_center * 0.035 + vec2(seed_low * 0.0002, 8.3));
     float pick = clamp(hash21(pixel_cell + vec2(0.0, 7.7)) + (broad_tone - 0.5) * 0.24, 0.001, 0.999);
     float fleck = hash21(pixel_cell + vec2(81.2, 18.4));
@@ -261,7 +263,6 @@ void fragment() {
     // Keep the underlying colour cell fixed at 10 cm. When it becomes sub-pixel,
     // blend towards broad palette variation to prevent shimmering without enlarging texels.
     // Distance-based blending is identical on every face of a given voxel.
-    vec3 voxel_center_world = (voxel_cell_3d + vec3(0.5)) * max(pixel_size, 0.1);
     float detail_distance = distance(CAMERA_POSITION_WORLD, voxel_center_world);
     float grass_detail_weight = 1.0 - smoothstep(80.0, 240.0, detail_distance);
 
