@@ -77,9 +77,10 @@ With Godot 4.7.2 installed:
 ~~~sh
 godot --headless --editor --path . --quit
 godot --headless --path . --script res://tests/neverland_voxen_smoke_test.gd
+godot --headless --path . --script res://tests/terrain_shadow_proxy_smoke_test.gd
 ~~~
 
-The smoke test checks deterministic terrain, the mountain profile, terrain density, and proportional mountain scaling on a half-size world.
+The terrain smoke test checks deterministic terrain, the mountain profile, terrain density, and proportional mountain scaling. The shadow-proxy test checks that the coarse full-world mesh is generated and configured as shadows-only.
 
 ## Version history
 
