@@ -5,6 +5,7 @@ class_name VoxelChunkMeshBuilder
 ## the SceneTree, RenderingServer and physics resources are handled by the main-thread wrapper.
 
 const VOXEL_SIZE: float = 0.1
+const BASE_MESH_STEP_VOXELS: int = 2
 const HEIGHT_CACHE_STEP_VOXELS: int = 5
 const LOD_SKIRT_DEPTH_VOXELS: int = 80
 const SKIRT_ALPHA_LEFT: float = 0.80
@@ -51,7 +52,7 @@ func build_mesh_data(job_data: Dictionary) -> Dictionary:
     collision_enabled = false
     debug_lod_colors = p_debug_lod_colors
 
-    var step_voxels: int = maxi(1, int(request.get("step_voxels", 1 << lod)))
+    var step_voxels: int = maxi(1, int(request.get("step_voxels", BASE_MESH_STEP_VOXELS << lod)))
     var cell_size: float = float(step_voxels) * VOXEL_SIZE
     var cells_x: int = int(ceil(float(size_voxels_x) / float(step_voxels)))
     var cells_z: int = int(ceil(float(size_voxels_z) / float(step_voxels)))
