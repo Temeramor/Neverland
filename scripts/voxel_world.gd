@@ -8,7 +8,7 @@ const BuilderScript = preload("res://scripts/voxel_chunk_builder.gd")
 
 @export_category("Voxel world")
 @export_range(256.0, 20000.0, 256.0) var world_size_m: float = 10000.0
-@export_range(8.0, 32.0, 8.0) var chunk_size_m: float = 16.0
+@export_range(8.0, 32.0, 8.0) var chunk_size_m: float = 32.0
 @export var seed_value: int = 1337
 @export var auto_start_on_ready: bool = true
 
