@@ -44,7 +44,6 @@ struct NoiseSet {
     Ref<FastNoiseLite> detail;
     Ref<FastNoiseLite> ridges;
     Ref<FastNoiseLite> micro_ridge;
-    Ref<FastNoiseLite> soil;
     Ref<FastNoiseLite> transition;
 
     struct MountainSegment {
@@ -74,7 +73,6 @@ struct NoiseSet {
         detail = make_noise(static_cast<int32_t>(seed + 503), 3, 0.52);
         ridges = make_noise(static_cast<int32_t>(seed + 709), 5, 0.52, FastNoiseLite::FRACTAL_RIDGED);
         micro_ridge = make_noise(static_cast<int32_t>(seed + 907), 3, 0.52, FastNoiseLite::FRACTAL_RIDGED);
-        soil = make_noise(static_cast<int32_t>(seed + 1103), 2, 0.52);
         transition = make_noise(static_cast<int32_t>(seed + 1301), 2, 0.52);
     }
 
