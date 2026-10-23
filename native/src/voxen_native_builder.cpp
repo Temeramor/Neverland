@@ -24,6 +24,7 @@ using namespace godot;
 namespace {
 
 constexpr double VOXEL_SIZE = 0.1;
+constexpr int32_t BASE_MESH_STEP_VOXELS = 2;
 constexpr int HEIGHT_CACHE_STEP_VOXELS = 5;
 constexpr int LOD_SKIRT_DEPTH_VOXELS = 80;
 constexpr double SKIRT_ALPHA_LEFT = 0.80;
@@ -629,7 +630,7 @@ struct MeshBuild {
             return Dictionary();
         }
 
-        step_voxels = std::max<int32_t>(1, static_cast<int32_t>(request.get("step_voxels", 1 << lod)));
+        step_voxels = std::max<int32_t>(1, static_cast<int32_t>(request.get("step_voxels", BASE_MESH_STEP_VOXELS << lod)));
         cell_size = static_cast<double>(step_voxels) * VOXEL_SIZE;
         cells_x = static_cast<int32_t>(std::ceil(static_cast<double>(size_voxels_x) / step_voxels));
         cells_z = static_cast<int32_t>(std::ceil(static_cast<double>(size_voxels_z) / step_voxels));
