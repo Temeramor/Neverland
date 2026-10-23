@@ -4,8 +4,8 @@ config_version=5
 
 [application]
 config/name="Neverland"
-config/description="Neverland 0.1.0.3 — flat-lit voxel terrain with broad terrain shadows."
-config/version="0.1.0.3"
+config/description="Neverland 0.1.0.4 — hierarchical world-wide voxel LOD with terrain shadows."
+config/version="0.1.0.4"
 config/icon="res://icon.svg"
 run/main_scene="res://scenes/menu.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
