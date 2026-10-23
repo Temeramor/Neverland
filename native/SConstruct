@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+import os
+import sys
+
+from SCons.Script import Environment, Glob, SConscript, Variables, ARGUMENTS, Help
+
+libname = "voxen_native"
+local_env = Environment(tools=["default"], PLATFORM="")
+opts = Variables([], ARGUMENTS)
+opts.Update(local_env)
+Help(opts.GenerateHelpText(local_env))
+
+if not (os.path.isdir("godot-cpp") and os.listdir("godot-cpp")):
+    print("godot-cpp is missing. Run:")
+    print("  git clone --depth 1 --branch 10.0.0-stable https://github.com/godotengine/godot-cpp.git native/godot-cpp")
+    sys.exit(1)
+
+env = SConscript(
+    "godot-cpp/SConstruct",
+    {"api_version": "4.7", "env": local_env},
+)
+env.Append(CPPPATH=["src/"])
+sources = Glob("src/*.cpp")
+
+suffix = env["suffix"].replace(".dev", "").replace(".universal", "")
+lib_filename = "{}{}{}{}".format(
+    env.subst("$SHLIBPREFIX"),
+    libname,
+    suffix,
+    env.subst("$SHLIBSUFFIX"),
+)
+output_dir = os.path.abspath(os.path.join("..", "bin", env["platform"]))
+os.makedirs(output_dir, exist_ok=True)
+library = env.SharedLibrary(
+    os.path.join(output_dir, lib_filename),
+    source=sources,
+)
+Default(library)
