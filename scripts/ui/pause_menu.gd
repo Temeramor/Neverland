@@ -334,7 +334,7 @@ func _apply_control_styles() -> void:
     popup.add_theme_color_override("font_hover_color", COLOR_GOLD)
     popup.add_theme_color_override("font_disabled_color", COLOR_MUTED)
     popup.add_theme_font_size_override("font_size", 13)
-    popup.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+    popup.theme = theme
 
     var slider_track := StyleBoxFlat.new()
     slider_track.bg_color = Color("#1B3432")
