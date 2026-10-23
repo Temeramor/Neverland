@@ -735,7 +735,11 @@ func _update_lod_subtree_visibility(coord: Vector2i, ancestors_visible: bool) ->
         return
     var request: Dictionary = _wanted[coord]
     var parent: bool = bool(request.get("fallback", false))
-    var children: Array[Vector2i] = _get_lod_tile_children(coord) if parent else []
+    # Avoid assigning an untyped [] from a ternary to Array[Vector2i] on Godot 4.7.
+    # Leaf tiles have no children; parent tiles fill the typed array explicitly.
+    var children: Array[Vector2i] = []
+    if parent:
+        children = _get_lod_tile_children(coord)
     var children_ready: bool = _all_lod_children_ready(children) if parent else false
     var chunk: VoxelTerrainChunk = _chunks.get(coord) as VoxelTerrainChunk
     var node_active: bool = ancestors_visible and (not parent or not children_ready) and chunk != null and chunk.mesh_ready
