@@ -100,9 +100,9 @@ func apply_mesh_data(data: Dictionary, material: Material) -> void:
     var mesh_instance := MeshInstance3D.new()
     mesh_instance.name = "VoxelMesh"
     mesh_instance.mesh = mesh
-    # Fine and nearby voxel terrain casts real shadows. Far LODs use the shared coarse
-    # terrain shadow proxy, avoiding expensive shadow rendering for the whole 10 km map.
-    mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if lod <= 2 else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+    # Every visible LOD casts its actual voxel terrain shadows. Farther meshes are
+    # progressively coarser, so their shadow silhouettes stay cheap enough for the whole map.
+    mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
     _skirt_visibility_cache = Vector4(-1.0, -1.0, -1.0, -1.0)
     add_child(mesh_instance)
     mesh_ready = true
