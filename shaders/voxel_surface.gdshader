@@ -204,7 +204,6 @@ void fragment() {
     vec2 pixel_center = voxel_center_world.xz;
     float broad_tone = value_noise(pixel_center * 0.035 + vec2(seed_low * 0.0002, 8.3));
     float pick = clamp(hash21(pixel_cell + vec2(0.0, 7.7)) + (broad_tone - 0.5) * 0.24, 0.001, 0.999);
-    float fleck = hash21(pixel_cell + vec2(81.2, 18.4));
 
     // Keep the underlying colour cell fixed at 10 cm. When it becomes sub-pixel,
     // blend towards broad palette variation to prevent shimmering without enlarging texels.
