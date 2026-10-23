@@ -7,6 +7,7 @@ Neverland is a procedural first-person landscape exploration prototype built wit
 - **Consistent real shadows:** removed the obsolete scene reference to the deleted shadow proxy. Every visible voxel LOD casts its own terrain shadows; broad mountain shadows therefore come directly from the same terrain meshes shown to the player.
 - **Balanced face lighting:** environment ambient light is enabled, direct light no longer darkens faces solely because their normal points away from the light, and a subtle emission baseline keeps occluded texture colours readable. Shadow attenuation still applies, so this is not an unshadowed/emissive material.
 - **LOD verification:** extended the hierarchy smoke test to check the sampling stride for all seven levels (0.2, 0.4, 0.8, 1.6, 3.2, 6.4 and 12.8 m), in addition to distance bands, tile footprints and map-edge clipping.
+- **Adaptive height cache:** the height cache stays at 0.5 m for the two finest levels, then grows with the mesh sampling step for distant LODs. A 2048 m LOD6 tile now needs only about 160 × 160 height-cache samples rather than a 0.5 m grid with thousands of samples per axis. Native C++ and GDScript meshers use the same adaptive rule.
 - **Scene cleanup:** the world scene no longer references a separate shadow proxy that is not present in the repository.
 - **Version:** `project.godot` and `VERSION` both report `0.1.0.5`.
 
@@ -74,6 +75,7 @@ The extension descriptor is at `bin/voxen_native.gdextension`; compiled outputs 
 - **Native C++:** chunk mesh building, height-cache sampling, greedy top-face merging, exposed side faces, LOD skirts and collision-height data.
 - **GDScript:** world streaming/scheduling, deadline priority, worker task lifecycle, applying Godot rendering/physics resources on the main thread, player controls, UI, sky/weather and generation orchestration.
 - **Startup:** coarse LOD6 meshes cover the full map; tile parents stay visible until all required child meshes are ready. The player appears only after world coverage and the spawn collision are ready.
+- **Far LOD cost:** coarse tiles increase both mesh stride and height-cache spacing, so the world-covering hierarchy does not allocate a detailed sub-metre height cache for distant terrain.
 - **Shadows:** visible voxel meshes at all LOD levels cast real terrain shadows. Their mesh cell size grows with distance, limiting the cost of distant shadow casters. The shader softens top/side lighting contrast but retains `ATTENUATION`, ambient light and a subtle emission fill.
 - **Terrain:** 10 cm logical voxel columns sample Neverland's existing height profile. Range dimensions use world metres and are not multiplied by the voxel size. Smaller worlds shrink their mountain ranges with the configured world size.
 - **Rock shader:** original seeded pixel palette plus smoothly faded, variable-width Voronoi cracks; broad mineral strata and additional crack/chip layers are disabled.
