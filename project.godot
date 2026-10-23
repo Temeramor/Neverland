@@ -4,8 +4,8 @@ config_version=5
 
 [application]
 config/name="Neverland"
-config/description="Neverland 0.1.0 — procedural voxel landscape powered by VoxEn 0.3.5."
-config/version="0.1.0"
+config/description="Neverland 0.1.0.1 — procedural voxel landscape powered by VoxEn 0.3.5."
+config/version="0.1.0.1"
 config/icon="res://icon.svg"
 run/main_scene="res://scenes/menu.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
