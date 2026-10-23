@@ -40,6 +40,21 @@ func _run() -> void:
                 lod, expected_size, float(bounds["width"])
             ])
 
+    var expected_steps_voxels: Array[int] = [2, 4, 8, 16, 32, 64, 128]
+    for lod in range(7):
+        var requested: Dictionary = {}
+        world._collect_lod_tiles(
+            lod, 0, 0,
+            Vector2(-5000.0, -5000.0), Vector2(0.0, -1.0), Vector2.ZERO,
+            requested
+        )
+        var key: Vector2i = world._make_lod_key(lod, 0, 0)
+        var actual_step: int = int(requested[key]["step_voxels"])
+        if actual_step != expected_steps_voxels[lod]:
+            errors.append("LOD%d mesh stride expected %d voxels, got %d" % [
+                lod, expected_steps_voxels[lod], actual_step
+            ])
+
     var root_count: int = ceili(float(world._world_size_voxels) / float(world._chunk_size_voxels * 64))
     if root_count != 5:
         errors.append("10 km map should need 5 LOD6 roots per axis, got %d" % root_count)
