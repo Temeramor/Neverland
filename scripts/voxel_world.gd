@@ -238,12 +238,7 @@ func get_startup_progress() -> float:
 func surface_sample_at_world(world_x: float, world_z: float) -> Vector3:
     if _generator == null:
         _generator = GeneratorScript.new(seed_value, world_size_m)
-    var height: float = get_surface_height(world_x, world_z)
-    var left_height: float = _generator.get_surface_height(world_x - 0.5, world_z)
-    var right_height: float = _generator.get_surface_height(world_x + 0.5, world_z)
-    var north_height: float = _generator.get_surface_height(world_x, world_z - 0.5)
-    var south_height: float = _generator.get_surface_height(world_x, world_z + 0.5)
-    return Vector3(height, right_height - left_height, south_height - north_height)
+    return _generator.get_surface_sample(world_x, world_z)
 
 func _try_finish_startup_loading() -> void:
     if not _startup_load_pending or _player == null:
