@@ -578,8 +578,10 @@ func _build_voxen_debug_ui() -> void:
     _voxen_debug_panel = PanelContainer.new()
     _voxen_debug_panel.name = "VoxEnDebugPanel"
     _voxen_debug_panel.position = Vector2(14.0, 62.0)
-    _voxen_debug_panel.size = Vector2(790.0, 122.0)
-    _voxen_debug_panel.custom_minimum_size = Vector2(480.0, 118.0)
+    var view_width: float = get_viewport().get_visible_rect().size.x
+    var debug_width: float = maxf(240.0, minf(790.0, view_width - 28.0))
+    _voxen_debug_panel.size = Vector2(debug_width, 180.0)
+    _voxen_debug_panel.custom_minimum_size = Vector2(minf(480.0, debug_width), 180.0)
     _voxen_debug_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
     var panel_style := StyleBoxFlat.new()
     panel_style.bg_color = Color(0.025, 0.04, 0.035, 0.88)
