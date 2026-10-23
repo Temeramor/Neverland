@@ -132,98 +132,44 @@ vec3 rock_palette(float pick) {
 }
 
 vec3 rock_pixel(vec2 pixel_cell, vec2 pixel_world) {
+    // Base rock remains the original Neverland pixel palette. No mineral bands,
+    // vertical fissure overlays, chips, pitting or broad warm/cool tint layers.
     float broad_tone = value_noise(pixel_world * 0.021 + vec2(13.8, seed_low * 0.0006));
     float random_cell = hash21(pixel_cell + vec2(0.0, 21.8));
-    float pick = clamp(random_cell + (broad_tone - 0.5) * 0.19, 0.001, 0.999);
-    vec3 color = rock_palette(pick);
+    float pick = clamp(random_cell + (broad_tone - 0.5) * 0.12, 0.001, 0.999);
+    vec3 base_color = rock_palette(pick);
 
-    // Warped mineral strata create irregular, non-repeating color bands across the stone.
+    // Gently warp the cellular field, so crack paths are irregular rather than straight
+    // or aligned into bands. Both fields are continuous world-space functions.
     vec2 warp = (vec2(
-        value_noise(pixel_world * 0.017 + vec2(3.3, 8.1)),
-        value_noise(pixel_world * 0.019 + vec2(19.7, 2.4))
-    ) - 0.5) * 9.0;
-    vec2 warped = pixel_world + warp;
-    float mineral_layers = value_noise(warped * vec2(0.012, 0.039) + vec2(seed_low * 0.0002, 6.1));
-    float layer_tone = smoothstep(0.05, 0.95, mineral_layers);
-    float broad_stone_tone = value_noise(warped * 0.0019 + vec2(17.2, seed_high * 0.00015));
-    float mountain_macro_tone = value_noise(warped * 0.00082 + vec2(
-        17.2 + seed_low * 0.00011,
-        8.4 + seed_high * 0.00019
-    ));
-    // Slightly darker stone with very broad, smooth tonal drift across entire faces.
-    // The low-frequency term changes over hundreds of world units, never in sharp bands.
-    float stone_brightness = clamp(
-        0.68 + layer_tone * 0.19
-        + (broad_stone_tone - 0.5) * 0.25
-        + (mountain_macro_tone - 0.5) * 0.14,
-        0.58, 0.98
-    );
-    float stone_warmth = value_noise(warped * vec2(0.0025, 0.0060) + vec2(31.3, 8.4));
-    vec3 cool_tint = mix(vec3(0.78, 0.84, 0.94), vec3(1.02, 1.02, 0.99), layer_tone);
-    vec3 warm_tint = mix(vec3(0.88, 0.84, 0.77), vec3(1.08, 1.045, 0.98), layer_tone);
-    vec3 smooth_tint = mix(cool_tint, warm_tint, smoothstep(0.18, 0.82, stone_warmth) * 0.62);
-    color *= smooth_tint * stone_brightness;
+        value_noise(pixel_world * 0.024 + vec2(3.3, 8.1)),
+        value_noise(pixel_world * 0.021 + vec2(19.7, 2.4))
+    ) - 0.5) * 2.6;
+    vec2 crack_world = pixel_world + warp;
 
-    // Short, broken vertical fissures: lines stay aligned to the height axis,
-    // while small horizontal offsets and variable widths give them chipped, jagged edges.
-    // The subtle warp distorts the line shape without turning it into rounded noise spots.
-    vec2 fissure_world = pixel_world + warp * vec2(0.25, 0.08);
-    vec2 fissure_grid = fissure_world * vec2(0.22, 0.22);
-    vec2 fissure_cell = floor(fissure_grid);
-    vec2 fissure_local = fract(fissure_grid);
+    float micro_edge = voronoi_edge(crack_world / 5.5 + vec2(seed_low * 0.0008, 6.7));
+    float broad_edge = voronoi_edge(crack_world / 13.0 + vec2(19.4, seed_high * 0.0007));
 
-    // A sparse set of columns, with independently missing segments, creates broken seams.
-    float fissure_column = step(0.30, hash21(vec2(
-        fissure_cell.x + 42.3, 11.7 + seed_low * 0.0003
-    )));
-    float fissure_segment = step(0.31, hash21(
-        fissure_cell + vec2(21.4, 35.8 + seed_low * 0.0004)
-    ));
-    float fissure_start = mix(0.04, 0.20,
-        hash21(fissure_cell + vec2(22.1, 9.7)));
-    float fissure_length = mix(0.48, 0.76,
-        hash21(fissure_cell + vec2(7.4, 31.8)));
-    float fissure_vertical = step(fissure_start, fissure_local.y)
-        * (1.0 - step(fissure_start + fissure_length, fissure_local.y));
+    // Width is locally varied by smooth noise. The crack's visibility also fades with
+    // continuous noise, letting segments emerge and taper away without hard cut-off ends.
+    float micro_width_noise = value_noise(crack_world * 0.11 + vec2(7.4, seed_low * 0.0003));
+    float broad_width_noise = value_noise(crack_world * 0.047 + vec2(15.2, seed_high * 0.0005));
+    float micro_width = mix(0.018, 0.060, micro_width_noise);
+    float broad_width = mix(0.020, 0.075, broad_width_noise);
 
-    // Shift the groove slightly every couple of meters, producing a jagged rather than straight edge.
-    float fissure_micro_row = floor(fissure_world.y * 0.42);
-    float fissure_center = mix(0.40, 0.60,
-        hash21(vec2(fissure_cell.x + 3.2, 17.4)));
-    float fissure_jitter = (hash21(vec2(
-        fissure_cell.x + 8.1,
-        fissure_micro_row + seed_low * 0.0004
-    )) - 0.5) * 0.17;
-    float fissure_half_width = mix(0.05, 0.12, hash21(vec2(
-        fissure_cell.x + 16.7,
-        fissure_micro_row + 5.3
-    )));
-    float fissure_distance = abs(fissure_local.x - (fissure_center + fissure_jitter));
-    float fissure_mask = fissure_column * fissure_segment * fissure_vertical
-        * step(fissure_distance, fissure_half_width);
+    float micro_lifetime = smoothstep(0.24, 0.72,
+        value_noise(crack_world * 0.095 + vec2(29.1, seed_low * 0.0004)));
+    float broad_lifetime = smoothstep(0.30, 0.76,
+        value_noise(crack_world * 0.042 + vec2(3.7, seed_high * 0.0006)));
+    float micro_crack = (1.0 - smoothstep(micro_width, micro_width + 0.035, micro_edge))
+        * micro_lifetime;
+    float broad_crack = (1.0 - smoothstep(broad_width, broad_width + 0.030, broad_edge))
+        * broad_lifetime;
 
-    // Preserve the small chips and their original color; only skip chips directly under a fissure.
-    float chip_noise = value_noise(warped * 0.062 + vec2(27.0, 4.0));
-    float chip_mask = step(0.79, chip_noise) * (1.0 - fissure_mask);
-    color = mix(color, palette_color(vec3(0.105, 0.112, 0.112)), fissure_mask * 0.80);
-    color = mix(color, palette_color(vec3(0.655, 0.642, 0.608)), chip_mask * 0.18);
-
-    // Make Voronoi fractures less frequent and finer so vertical seams remain the dominant detail.
-    float edge = voronoi_edge(warped / 48.0 + vec2(seed_low * 0.0008, 6.7));
-    float crack_line = 1.0 - smoothstep(0.008, 0.029, edge);
-    float crack_region = step(0.84, value_noise(warped * 0.012 + vec2(9.0, 12.7)));
-    float crack_breakup = step(0.40, value_noise(warped * 0.041 + vec2(12.6, seed_low * 0.0004)));
-    float crack_mask = crack_line * crack_region * crack_breakup * (1.0 - fissure_mask * 0.35);
-    color = mix(color, palette_color(vec3(0.075, 0.080, 0.078)), crack_mask * 0.91);
-
-    // Tiny mineral flecks remain rare, so the stone keeps large readable planes.
-    float fleck = hash21(pixel_cell + vec2(34.8, 92.1));
-    if (fleck > 0.989) {
-        color = mix(color, palette_color(vec3(0.710, 0.690, 0.640)), 0.58);
-    } else if (fleck < 0.014) {
-        color = mix(color, palette_color(vec3(0.105, 0.110, 0.108)), 0.67);
-    }
-    return color;
+    // Use a muted dark stone colour and preserve some base pixels through each crack.
+    // The overlapping scales yield varied cracks without heavy bands across a mountain.
+    float crack_strength = clamp(micro_crack * 0.50 + broad_crack * 0.62, 0.0, 0.78);
+    return mix(base_color, palette_color(vec3(0.105, 0.112, 0.112)), crack_strength);
 }
 
 void vertex() {
