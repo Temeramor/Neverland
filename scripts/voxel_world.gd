@@ -552,6 +552,9 @@ func _poll_worker_tasks() -> void:
                 retry_empty["queued_usec"] = Time.get_ticks_usec()
                 _queued[coord] = retry_empty
             continue
+        # Treat the request as authoritative even if an older compiled native extension
+        # does not return this metadata field yet. Both mesh builders receive the same stride.
+        data["step_voxels"] = int(record["request"].get("step_voxels", BASE_MESH_STEP_VOXELS << int(record["request"]["lod"])))
         var lod_index: int = clampi(int(data.get("lod", record["request"]["lod"])), 0, 6)
         _record_timing(_build_usec_by_lod[lod_index], int(data.get("build_usec", 0)), 128)
         var queue_wait_usec: int = maxi(0, int(data.get("worker_started_usec", Time.get_ticks_usec())) - int(record.get("queued_usec", Time.get_ticks_usec())))
