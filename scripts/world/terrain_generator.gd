@@ -1,8 +1,8 @@
 extends Node3D
 class_name TerrainGenerator
 
-## Compatibility adapter: keep Neverland's existing world controller and vegetation API.
-## VoxEn prepares only the spawn chunk and collider; all other chunks stream in during play.
+## Compatibility adapter for Neverland's existing world controller.
+## VoxEn prepares the spawn chunk/collider first; all other terrain chunks stream during play.
 
 signal generation_started(seed_value: int)
 signal generation_progress(seed_value: int, progress: float, status: String)
@@ -14,7 +14,6 @@ signal generation_finished(seed_value: int)
 @export var world_seed: int = 1337
 
 var _voxel_world: VoxelWorld
-var _grass_field: Node3D
 var _weather_mode: int = 1
 var _generation_active: bool = false
 var _progress_timer: float = 0.0
@@ -52,30 +51,14 @@ func _process(delta: float) -> void:
                 "Готовим стартовый чанк и коллизию... (%d чанков)" % _voxel_world.get_loaded_chunk_count())
         return
     _generation_active = false
-    _create_grass_field()
     generation_progress.emit(world_seed, 1.0,
-        "Стартовая область готова; остальной мир загружается по ходу исследования.")
+        "Стартовая область готова; остальной воксельный мир загружается по ходу исследования.")
     generation_finished.emit(world_seed)
 
 
-func _create_grass_field() -> void:
-    if is_instance_valid(_grass_field):
-        _grass_field.queue_free()
-        _grass_field = null
-    var grass_scene := load("res://assets/terrain/grass/GrassField.tscn") as PackedScene
-    if grass_scene == null:
-        return
-    _grass_field = grass_scene.instantiate() as Node3D
-    _grass_field.name = "ProceduralGrassField"
-    _grass_field.call("configure", self, world_seed)
-    add_child(_grass_field)
-    _grass_field.call("set_weather", _weather_mode)
-
-
 func set_weather(mode: int) -> void:
+    # Weather still drives Neverland's sky and lighting; vegetation is intentionally disabled.
     _weather_mode = clampi(mode, 0, 2)
-    if is_instance_valid(_grass_field):
-        _grass_field.call("set_weather", _weather_mode)
 
 
 func height_at_world(world_x: float, world_z: float) -> float:
