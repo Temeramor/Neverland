@@ -1,7 +1,10 @@
 extends Node3D
 class_name WorldController
 
+const PauseMenuScript = preload("res://scripts/ui/pause_menu.gd")
+
 @onready var terrain: TerrainGenerator = $Terrain
+@onready var voxel_world: VoxelWorld = $VoxelWorld
 @onready var player: PlayerController = $Player
 @onready var touch_controls: TouchControls = $CanvasLayer/TouchControls
 @onready var loading_screen: LoadingScreen = $CanvasLayer/LoadingScreen
@@ -41,6 +44,8 @@ var _voxen_debug_panel: PanelContainer
 var _voxen_debug_label: Label
 var _voxen_debug_visible: bool = false
 var _voxen_debug_timer: float = 0.0
+var _pause_menu: PauseMenu
+var _pause_button: Button
 
 
 func _ready() -> void:
@@ -58,6 +63,7 @@ func _ready() -> void:
     touch_controls.visible = false
     touch_controls.process_mode = Node.PROCESS_MODE_DISABLED
     loading_screen.visible = false
+    voxel_world.set_lod_settings(GameSettings.lod_detail_bias, GameSettings.lod0_distance_m)
 
     var gameplay_camera: Camera3D = $Player/CameraPivot/Camera3D
     gameplay_camera.far = maxf(2200.0, terrain.get_render_distance_m() * 1.35)
@@ -65,6 +71,7 @@ func _ready() -> void:
     _build_flight_status()
     _setup_weather_controls()
     _build_voxen_debug_ui()
+    _build_pause_menu_ui()
     _apply_weather(WEATHER_CLOUDY, false)
     call_deferred("_begin_pending_game_if_requested")
 
@@ -143,6 +150,8 @@ func _on_generation_finished(_seed_value: int) -> void:
     loading_screen.set_progress(1.0, "Мир готов. Приятного исследования!")
     loading_screen.visible = false
     _world_ready = true
+    if _pause_button != null:
+        _pause_button.visible = OS.has_feature("android")
     if weather_menu_button != null:
         weather_menu_button.visible = OS.has_feature("android")
         weather_menu_button.disabled = false
@@ -517,11 +526,14 @@ func _unhandled_input(event: InputEvent) -> void:
     if not (event is InputEventKey) or not event.pressed or event.echo:
         return
 
-    if event.keycode == KEY_M or event.physical_keycode == KEY_M:
-        _set_weather_menu_open(not _weather_menu_open)
+    if event.keycode == KEY_ESCAPE:
+        if _weather_menu_open:
+            _set_weather_menu_open(false)
+        elif _world_ready and _pause_menu != null:
+            _pause_menu.open_pause()
         get_viewport().set_input_as_handled()
-    elif event.keycode == KEY_ESCAPE and _weather_menu_open:
-        _set_weather_menu_open(false)
+    elif event.keycode == KEY_M or event.physical_keycode == KEY_M:
+        _set_weather_menu_open(not _weather_menu_open)
         get_viewport().set_input_as_handled()
 
 
@@ -612,3 +624,64 @@ func _toggle_voxen_debug() -> void:
         _voxen_debug_button.text = "HIDE DEBUG" if _voxen_debug_visible else "VOXEN DEBUG"
     if _voxen_debug_visible and _voxen_debug_label != null:
         _voxen_debug_label.text = terrain.get_debug_text()
+
+
+
+func _build_pause_menu_ui() -> void:
+    _pause_button = _make_control_button("PauseMenuToggle", "ПАУЗА", "Открыть паузу (Esc)")
+    _pause_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+    _pause_button.offset_left = -304.0
+    _pause_button.offset_top = 14.0
+    _pause_button.offset_right = -220.0
+    _pause_button.offset_bottom = 54.0
+    _pause_button.custom_minimum_size = Vector2(84.0, 40.0)
+    _pause_button.visible = false
+    _pause_button.pressed.connect(_open_pause_menu)
+    $CanvasLayer.add_child(_pause_button)
+
+    _pause_menu = PauseMenuScript.new() as PauseMenu
+    _pause_menu.configure(voxel_world)
+    _pause_menu.opened.connect(_on_pause_menu_opened)
+    _pause_menu.closed.connect(_on_pause_menu_closed)
+    _pause_menu.quit_to_menu_requested.connect(_return_to_menu)
+    $CanvasLayer.add_child(_pause_menu)
+
+
+func _open_pause_menu() -> void:
+    if not _world_ready or _pause_menu == null:
+        return
+    if _weather_menu_open:
+        _set_weather_menu_open(false)
+    _pause_menu.open_pause()
+
+
+func _on_pause_menu_opened() -> void:
+    player.mouse_capture_paused = true
+    touch_controls.visible = false
+    touch_controls.set_process_input(false)
+    if weather_panel != null:
+        weather_panel.visible = false
+    if weather_menu_button != null:
+        weather_menu_button.visible = false
+    if _pause_button != null:
+        _pause_button.visible = false
+
+
+func _on_pause_menu_closed() -> void:
+    if not _world_ready:
+        return
+    player.mouse_capture_paused = false
+    touch_controls.visible = true
+    touch_controls.set_process_input(true)
+    if weather_menu_button != null:
+        weather_menu_button.visible = OS.has_feature("android")
+    if _pause_button != null:
+        _pause_button.visible = OS.has_feature("android")
+
+
+func _return_to_menu() -> void:
+    get_tree().paused = false
+    GameSettings.has_requested_seed = false
+    var change_error: Error = get_tree().change_scene_to_file("res://scenes/menu.tscn")
+    if change_error != OK:
+        push_error("Не удалось вернуться в главное меню: " + error_string(change_error))
