@@ -9,6 +9,7 @@ const BuilderScript = preload("res://scripts/voxel_chunk_builder.gd")
 
 var coord: Vector2i = Vector2i.ZERO
 var lod: int = -1
+var mesh_step_voxels: int = 2
 var collision_enabled: bool = false # A collision shape is allocated for this chunk.
 var collision_active: bool = false # Its collision layer is currently enabled.
 var mesh_ready: bool = false
@@ -71,6 +72,7 @@ func apply_mesh_data(data: Dictionary, material: Material) -> void:
     _mesh_shader_material = null
     coord = data.get("coord", Vector2i.ZERO)
     lod = int(data.get("lod", -1))
+    mesh_step_voxels = int(data.get("step_voxels", 2 << clampi(lod, 0, 6)))
     debug_lod_colors = bool(data.get("debug_lod_colors", false))
     neighbor_lods_used = data.get("neighbor_lods_used", {}).duplicate(true)
     collision_enabled = false
