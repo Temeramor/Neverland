@@ -784,7 +784,7 @@ func _collect_lod_tiles(lod_index: int, tile_x: int, tile_z: int, player_xz: Vec
         "start_x": int(bounds["start_x"]), "start_z": int(bounds["start_z"]),
         "size_x": int(bounds["size_x"]), "size_z": int(bounds["size_z"]),
         "tile_x": tile_x, "tile_z": tile_z, "tile_size_m": chunk_size_m * float(1 << lod_index),
-        "step_voxels": 128 if lod_index == 6 else (1 << lod_index)
+        "step_voxels": 1 << (lod_index + 1) if lod_index >= 4 else (1 << lod_index)
     }
     wanted[key] = req
     if split:
