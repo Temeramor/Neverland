@@ -51,13 +51,26 @@ func generate(generator: VoxelTerrainGenerator, world_size_m: float) -> bool:
                 return false
 
     var vertices := PackedVector3Array()
+    var normals := PackedVector3Array()
     vertices.resize(sample_count)
+    normals.resize(sample_count)
     for z in range(row_width):
         var world_z: float = float(z) * step_m - half_size
         var row_offset: int = z * row_width
         for x in range(row_width):
             var world_x: float = float(x) * step_m - half_size
-            vertices[row_offset + x] = Vector3(world_x, heights[row_offset + x], world_z)
+            var index: int = row_offset + x
+            vertices[index] = Vector3(world_x, heights[index], world_z)
+
+            var left_index: int = row_offset + maxi(x - 1, 0)
+            var right_index: int = row_offset + mini(x + 1, cells)
+            var back_index: int = maxi(z - 1, 0) * row_width + x
+            var front_index: int = mini(z + 1, cells) * row_width + x
+            normals[index] = Vector3(
+                heights[left_index] - heights[right_index],
+                2.0 * step_m,
+                heights[back_index] - heights[front_index]
+            ).normalized()
         if z % 24 == 0:
             _build_progress = 0.35 + 0.25 * float(z + 1) / float(row_width)
             await get_tree().process_frame
@@ -92,6 +105,7 @@ func generate(generator: VoxelTerrainGenerator, world_size_m: float) -> bool:
     var arrays: Array = []
     arrays.resize(Mesh.ARRAY_MAX)
     arrays[Mesh.ARRAY_VERTEX] = vertices
+    arrays[Mesh.ARRAY_NORMAL] = normals
     arrays[Mesh.ARRAY_INDEX] = indices
     var mesh := ArrayMesh.new()
     mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
