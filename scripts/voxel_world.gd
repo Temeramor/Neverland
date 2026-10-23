@@ -646,7 +646,7 @@ func _completed_job_matches(coord: Vector2i, request: Dictionary) -> bool:
     if not _completed_jobs.has(coord):
         return false
     var record: Dictionary = _completed_jobs[coord]
-    return int(record["epoch"]) == _generation_epoch and int(record["seed"]) == seed_value and bool(record["debug"]) == _debug_lod_colors and int(record["request"]["lod"]) == int(request["lod"]) and bool(record["request"]["collision"]) == bool(request["collision"])
+    return int(record["epoch"]) == _generation_epoch and int(record["seed"]) == seed_value and bool(record["debug"]) == _debug_lod_colors and int(record["request"]["lod"]) == int(request["lod"]) and int(record["request"].get("step_voxels", -1)) == int(request.get("step_voxels", -1)) and bool(record["request"]["collision"]) == bool(request["collision"])
 
 func _neighbor_lods_for(coord: Vector2i) -> Dictionary:
     return {
