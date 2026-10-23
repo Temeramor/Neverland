@@ -48,11 +48,11 @@ func _run() -> void:
         [2048.0, 6]
     ]
     for sample in scaled_samples:
-        var distance: float = float(sample[0])
-        var expected_lod: int = int(sample[1])
-        if world._lod_for_distance(distance) != expected_lod:
+        var scaled_distance: float = float(sample[0])
+        var expected_scaled_lod: int = int(sample[1])
+        if world._lod_for_distance(scaled_distance) != expected_scaled_lod:
             errors.append("Scaled LOD distance %.1f m expected LOD%d, got LOD%d" % [
-                distance, expected_lod, world._lod_for_distance(distance)
+                scaled_distance, expected_scaled_lod, world._lod_for_distance(scaled_distance)
             ])
     world.set_lod_settings(1, 128.0)
 
