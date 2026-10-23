@@ -36,6 +36,11 @@ var _last_styled_time_mode: int = -1
 var _world_ready: bool = false
 var _generation_started: bool = false
 var _sky_tween: Tween
+var _voxen_debug_button: Button
+var _voxen_debug_panel: PanelContainer
+var _voxen_debug_label: Label
+var _voxen_debug_visible: bool = false
+var _voxen_debug_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -55,10 +60,11 @@ func _ready() -> void:
     loading_screen.visible = false
 
     var gameplay_camera: Camera3D = $Player/CameraPivot/Camera3D
-    gameplay_camera.far = maxf(1400.0, terrain.world_size * 1.25)
+    gameplay_camera.far = maxf(512.0, terrain.get_render_distance_m() * 1.25)
     _configure_sky_system()
     _build_flight_status()
     _setup_weather_controls()
+    _build_voxen_debug_ui()
     _apply_weather(WEATHER_CLOUDY, false)
     call_deferred("_begin_pending_game_if_requested")
 
@@ -107,7 +113,7 @@ func begin_generation(seed_value: int) -> void:
     player.flight_speed_multiplier = GameSettings.flight_speed_multiplier
     player.flight_fov = GameSettings.flight_fov
     var gameplay_camera: Camera3D = $Player/CameraPivot/Camera3D
-    gameplay_camera.far = maxf(1400.0, terrain.world_size * 1.25)
+    gameplay_camera.far = maxf(512.0, terrain.get_render_distance_m() * 1.25)
 
     loading_screen.visible = true
     loading_screen.set_progress(0.0, "Подготавливаем генератор ландшафта...")
@@ -537,3 +543,70 @@ func _style_button(control_button: Button, selected: bool) -> void:
     control_button.add_theme_stylebox_override("normal", normal_style)
     control_button.add_theme_stylebox_override("hover", hover_style)
     control_button.add_theme_stylebox_override("pressed", pressed_style)
+
+
+func _process(delta: float) -> void:
+    if not _voxen_debug_visible or _voxen_debug_label == null:
+        return
+    _voxen_debug_timer += delta
+    if _voxen_debug_timer >= 0.2:
+        _voxen_debug_timer = 0.0
+        _voxen_debug_label.text = terrain.get_debug_text()
+
+
+func _build_voxen_debug_ui() -> void:
+    _voxen_debug_button = Button.new()
+    _voxen_debug_button.name = "VoxEnDebugToggle"
+    _voxen_debug_button.text = "VOXEN DEBUG"
+    _voxen_debug_button.tooltip_text = "Показать статистику чанков, LOD, коллизий и очереди"
+    _voxen_debug_button.focus_mode = Control.FOCUS_NONE
+    _voxen_debug_button.position = Vector2(14.0, 14.0)
+    _voxen_debug_button.size = Vector2(150.0, 40.0)
+    _voxen_debug_button.custom_minimum_size = Vector2(150.0, 40.0)
+    _voxen_debug_button.add_theme_font_size_override("font_size", 13)
+    _voxen_debug_button.add_theme_color_override("font_color", Color(0.94, 0.96, 0.87, 1.0))
+    _voxen_debug_button.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 0.94, 1.0))
+    var button_style := StyleBoxFlat.new()
+    button_style.bg_color = Color(0.035, 0.055, 0.045, 0.91)
+    button_style.border_color = Color(0.72, 0.61, 0.34, 0.95)
+    button_style.set_border_width_all(1)
+    button_style.set_corner_radius_all(4)
+    _voxen_debug_button.add_theme_stylebox_override("normal", button_style)
+    _voxen_debug_button.pressed.connect(_toggle_voxen_debug)
+    $CanvasLayer.add_child(_voxen_debug_button)
+
+    _voxen_debug_panel = PanelContainer.new()
+    _voxen_debug_panel.name = "VoxEnDebugPanel"
+    _voxen_debug_panel.position = Vector2(14.0, 62.0)
+    _voxen_debug_panel.size = Vector2(790.0, 122.0)
+    _voxen_debug_panel.custom_minimum_size = Vector2(480.0, 118.0)
+    _voxen_debug_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    var panel_style := StyleBoxFlat.new()
+    panel_style.bg_color = Color(0.025, 0.04, 0.035, 0.88)
+    panel_style.border_color = Color(0.42, 0.51, 0.36, 0.9)
+    panel_style.set_border_width_all(1)
+    panel_style.set_corner_radius_all(4)
+    panel_style.content_margin_left = 10.0
+    panel_style.content_margin_right = 10.0
+    panel_style.content_margin_top = 7.0
+    panel_style.content_margin_bottom = 7.0
+    _voxen_debug_panel.add_theme_stylebox_override("panel", panel_style)
+    _voxen_debug_label = Label.new()
+    _voxen_debug_label.name = "VoxEnDebugText"
+    _voxen_debug_label.text = "VoxEn 0.3.5 — ожидание первой генерации..."
+    _voxen_debug_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    _voxen_debug_label.add_theme_font_size_override("font_size", 12)
+    _voxen_debug_label.add_theme_color_override("font_color", Color(0.91, 0.95, 0.85, 1.0))
+    _voxen_debug_panel.add_child(_voxen_debug_label)
+    $CanvasLayer.add_child(_voxen_debug_panel)
+    _voxen_debug_panel.visible = false
+
+
+func _toggle_voxen_debug() -> void:
+    _voxen_debug_visible = not _voxen_debug_visible
+    if _voxen_debug_panel != null:
+        _voxen_debug_panel.visible = _voxen_debug_visible
+    if _voxen_debug_button != null:
+        _voxen_debug_button.text = "HIDE DEBUG" if _voxen_debug_visible else "VOXEN DEBUG"
+    if _voxen_debug_visible and _voxen_debug_label != null:
+        _voxen_debug_label.text = terrain.get_debug_text()
