@@ -21,7 +21,6 @@ var _hill_noise: FastNoiseLite
 var _detail_noise: FastNoiseLite
 var _ridge_noise: FastNoiseLite
 var _micro_ridge_noise: FastNoiseLite
-var _soil_noise: FastNoiseLite
 var _transition_noise: FastNoiseLite
 var _mountain_starts: Array[Vector2] = []
 var _mountain_deltas: Array[Vector2] = []
@@ -57,7 +56,6 @@ func _create_noise_fields() -> void:
     _detail_noise = _make_noise(seed_value + 503, 0.0048, 3, FastNoiseLite.FRACTAL_FBM)
     _ridge_noise = _make_noise(seed_value + 709, 0.00082, 5, FastNoiseLite.FRACTAL_RIDGED)
     _micro_ridge_noise = _make_noise(seed_value + 907, 0.0034, 3, FastNoiseLite.FRACTAL_RIDGED)
-    _soil_noise = _make_noise(seed_value + 1103, 0.045, 2, FastNoiseLite.FRACTAL_FBM)
     _transition_noise = _make_noise(seed_value + 1301, 0.008, 2, FastNoiseLite.FRACTAL_FBM)
 
 
