@@ -26,6 +26,14 @@ func _input(event: InputEvent) -> void:
             # Reserve the top strip for interface buttons before touch movement or camera look.
             if event.position.y <= 88.0:
                 return
+            # When the profiler is expanded, do not start the movement stick or camera
+            # look through the panel. Existing touch gestures remain unchanged elsewhere.
+            var world_controller := get_parent().get_parent()
+            if world_controller != null and bool(world_controller.get("_voxen_debug_visible")):
+                var viewport_width: float = get_viewport().get_visible_rect().size.x
+                var panel_width: float = maxf(240.0, minf(790.0, viewport_width - 28.0))
+                if event.position.x <= 14.0 + panel_width and event.position.y <= 242.0:
+                    return
             if event.position.x < viewport_size.x * 0.5 and _move_touch_id == -1:
                 _move_touch_id = event.index
                 _move_origin = event.position
