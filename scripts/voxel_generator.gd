@@ -13,6 +13,7 @@ const MIN_TERRAIN_HEIGHT: float = -80.0
 const MAX_TERRAIN_HEIGHT: float = 1600.0
 const HEIGHT_SAMPLE_STEP_M: float = 0.5
 const MAX_SURFACE_CACHE_ENTRIES: int = 131072
+const REFERENCE_WORLD_SIZE_M: float = 10000.0
 
 var seed_value: int = 1337
 var world_size_m: float = 10000.0
@@ -83,8 +84,12 @@ func _create_mountain_ranges() -> void:
             center + direction * half_length * 0.30 + side * rng.randf_range(-1050.0, 1050.0),
             center + direction * half_length + side * rng.randf_range(-600.0, 600.0)
         ]
-        var range_height: float = rng.randf_range(850.0, 1320.0)
-        var range_width: float = rng.randf_range(540.0, 930.0)
+        # The source project defines these dimensions in world metres, not voxel counts.
+        # The 10 km reference keeps Neverland/main's exact mountain scale; smaller maps
+        # proportionally shrink mountain height and width instead of producing huge peaks.
+        var mountain_scale: float = world_size_m / REFERENCE_WORLD_SIZE_M
+        var range_height: float = rng.randf_range(850.0, 1320.0) * mountain_scale
+        var range_width: float = rng.randf_range(540.0, 930.0) * mountain_scale
         var phase: float = rng.randf_range(0.0, TAU)
         for segment_index in range(points.size() - 1):
             var a: Vector2 = points[segment_index]
