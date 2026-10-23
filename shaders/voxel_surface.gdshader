@@ -250,14 +250,5 @@ void fragment() {
             ALBEDO = distant_rock;
         }
     }
-    // A small self-lit baseline stops fully occluded voxel faces from collapsing to black.
-    // Environment ambient light remains enabled to soften the top/side brightness transition.
-    EMISSION = ALBEDO * 0.03;
     ROUGHNESS = 0.96;
-}
-
-void light() {
-    // Ignore face orientation for direct illumination, reducing the hard bright-top /
-    // dark-side band. ATTENUATION is retained, so real shadows still darken the terrain.
-    DIFFUSE_LIGHT += ALBEDO * LIGHT_COLOR * ATTENUATION * 0.75;
 }
