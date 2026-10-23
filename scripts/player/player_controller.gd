@@ -126,10 +126,7 @@ func _input(event: InputEvent) -> void:
             else:
                 _last_space_tap_msec = now_msec
             return
-        elif event.keycode == KEY_ESCAPE:
-            _mouse_look_active = false
-            Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-
+        
 func _unhandled_input(event: InputEvent) -> void:
     if mouse_capture_paused:
         return
