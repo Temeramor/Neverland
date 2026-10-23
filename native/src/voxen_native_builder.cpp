@@ -45,6 +45,7 @@ struct NoiseSet {
     Ref<FastNoiseLite> ridges;
     Ref<FastNoiseLite> micro_ridge;
     Ref<FastNoiseLite> soil;
+    Ref<FastNoiseLite> transition;
 
     struct MountainSegment {
         double ax = 0.0, az = 0.0, dx = 0.0, dz = 0.0;
@@ -74,6 +75,7 @@ struct NoiseSet {
         ridges = make_noise(static_cast<int32_t>(seed + 709), 5, 0.52, FastNoiseLite::FRACTAL_RIDGED);
         micro_ridge = make_noise(static_cast<int32_t>(seed + 907), 3, 0.52, FastNoiseLite::FRACTAL_RIDGED);
         soil = make_noise(static_cast<int32_t>(seed + 1103), 2, 0.52);
+        transition = make_noise(static_cast<int32_t>(seed + 1301), 2, 0.52);
     }
 
     void configure_from_job(const Dictionary &job_data, double fallback_world_size_m) {
@@ -152,9 +154,8 @@ struct NoiseSet {
     }
 
     int32_t surface_material(double height_m, double slope, double x, double z) const {
-        if (height_m >= 54.0 || slope >= 0.68) return ROCK;
-        if (height_m <= 19.0 || soil->get_noise_2d(x * 0.045, z * 0.045) > 0.59) return SOIL;
-        return GRASS;
+        const double transition_noise = transition->get_noise_2d(x * 0.008, z * 0.008) * 0.05;
+        return slope + transition_noise >= 0.39 ? ROCK : GRASS;
     }
 };
 
