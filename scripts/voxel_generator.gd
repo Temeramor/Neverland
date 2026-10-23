@@ -22,6 +22,7 @@ var _detail_noise: FastNoiseLite
 var _ridge_noise: FastNoiseLite
 var _micro_ridge_noise: FastNoiseLite
 var _soil_noise: FastNoiseLite
+var _transition_noise: FastNoiseLite
 var _mountain_starts: Array[Vector2] = []
 var _mountain_deltas: Array[Vector2] = []
 var _mountain_lengths_squared: Array[float] = []
@@ -57,6 +58,7 @@ func _create_noise_fields() -> void:
     _ridge_noise = _make_noise(seed_value + 709, 0.00082, 5, FastNoiseLite.FRACTAL_RIDGED)
     _micro_ridge_noise = _make_noise(seed_value + 907, 0.0034, 3, FastNoiseLite.FRACTAL_RIDGED)
     _soil_noise = _make_noise(seed_value + 1103, 0.045, 2, FastNoiseLite.FRACTAL_FBM)
+    _transition_noise = _make_noise(seed_value + 1301, 0.008, 2, FastNoiseLite.FRACTAL_FBM)
 
 
 func _create_mountain_ranges() -> void:
@@ -205,11 +207,11 @@ func get_surface_height_voxels(x: float, z: float) -> int:
 
 
 func get_surface_material(height_m: float, slope: float, x: float, z: float) -> int:
-    if height_m >= 54.0 or slope >= 0.68:
-        return ROCK
-    if height_m <= 19.0 or _soil_noise.get_noise_2d(x, z) > 0.59:
-        return SOIL
-    return GRASS
+    # Match Neverland's grass-to-stone transition: slope, not elevation, determines rock.
+    # At voxel scale a single material is chosen per column, so the original smooth colour
+    # blend becomes a fine seeded transition across 10 cm columns.
+    var transition_noise: float = _transition_noise.get_noise_2d(x, z) * 0.05
+    return ROCK if slope + transition_noise >= 0.39 else GRASS
 
 
 func get_terrain_density(world_x: float, world_y: float, world_z: float) -> float:
