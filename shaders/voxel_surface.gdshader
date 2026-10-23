@@ -261,7 +261,8 @@ void fragment() {
     // Keep the underlying colour cell fixed at 10 cm. When it becomes sub-pixel,
     // blend towards broad palette variation to prevent shimmering without enlarging texels.
     // Distance-based blending is identical on every face of a given voxel.
-    float detail_distance = distance(CAMERA_POSITION_WORLD, world_position);
+    vec3 voxel_center_world = (voxel_cell_3d + vec3(0.5)) * max(pixel_size, 0.1);
+    float detail_distance = distance(CAMERA_POSITION_WORLD, voxel_center_world);
     float grass_detail_weight = 1.0 - smoothstep(80.0, 240.0, detail_distance);
 
     if (debug_lod_colors) {
