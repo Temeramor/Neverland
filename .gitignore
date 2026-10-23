@@ -1,0 +1,13 @@
+# Godot editor/import cache
+.godot/
+.import/
+export.cfg
+export_presets.cfg
+
+# Native dependencies/build products
+native/godot-cpp/
+native/build/
+bin/linux/*.so
+bin/windows/*.dll
+bin/android/*.so
+bin/macos/*.dylib
