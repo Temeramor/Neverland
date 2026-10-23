@@ -33,6 +33,9 @@ const BuilderScript = preload("res://scripts/voxel_chunk_builder.gd")
 @export_range(16.0, 128.0, 8.0) var collision_distance_m: float = 80.0
 
 var _generator: VoxelTerrainGenerator
+var _terrain_shadow_proxy: TerrainShadowProxy
+var _terrain_shadow_ready: bool = false
+var _terrain_shadow_progress: float = 0.0
 var _voxel_material: ShaderMaterial
 var _player: CharacterBody3D
 var _chunks: Dictionary = {}
@@ -74,6 +77,7 @@ func _ready() -> void:
     _world_min_z = -world_size_m * 0.5
     _chunks_per_axis = int(ceil(float(_world_size_voxels) / float(_chunk_size_voxels)))
     _generator = GeneratorScript.new(seed_value, world_size_m)
+    _terrain_shadow_proxy = get_node_or_null("TerrainShadowProxy") as TerrainShadowProxy
 
     var surface_shader := load("res://shaders/voxel_surface.gdshader") as Shader
     _voxel_material = ShaderMaterial.new()
@@ -89,10 +93,11 @@ func _ready() -> void:
         _startup_load_pending = true
 
     if auto_start_on_ready:
-        _world_started = true
-        _refresh_streaming()
+        call_deferred("_prepare_world_for_epoch", _generation_epoch)
 
 func _process(delta: float) -> void:
+    if not _terrain_shadow_ready and _terrain_shadow_proxy != null:
+        _terrain_shadow_progress = _terrain_shadow_proxy.get_build_progress()
     _build_estimate_refresh_timer += delta
     if _build_estimate_refresh_timer >= 0.5:
         _build_estimate_refresh_timer = 0.0
@@ -139,8 +144,12 @@ func regenerate_with_random_seed() -> void:
 
 func regenerate_with_seed(new_seed: int) -> void:
     # Existing worker tasks cannot be cancelled safely; their epoch makes their results stale.
-    _world_started = true
+    _world_started = false
     _generation_epoch += 1
+    _terrain_shadow_ready = false
+    _terrain_shadow_progress = 0.0
+    if _terrain_shadow_proxy != null:
+        _terrain_shadow_proxy.visible = false
     seed_value = new_seed
     _queued.clear()
     _wanted.clear()
@@ -166,7 +175,27 @@ func regenerate_with_seed(new_seed: int) -> void:
         _startup_load_pending = true
     _last_player_position = Vector2(INF, INF)
     _last_refresh_chunk = Vector2i(-2147483648, -2147483648)
+    call_deferred("_prepare_world_for_epoch", _generation_epoch)
+
+func _prepare_world_for_epoch(epoch: int) -> void:
+    if epoch != _generation_epoch:
+        return
+    if _terrain_shadow_proxy != null:
+        var completed: bool = await _terrain_shadow_proxy.generate(_generator, world_size_m)
+        if epoch != _generation_epoch or not completed:
+            return
+    _terrain_shadow_ready = true
+    _terrain_shadow_progress = 1.0
+    _world_started = true
+    _refresh_timer = 0.0
+    _last_player_position = Vector2(INF, INF)
+    _last_refresh_chunk = Vector2i(-2147483648, -2147483648)
     _refresh_streaming()
+
+
+func is_terrain_shadow_ready() -> bool:
+    return _terrain_shadow_ready
+
 
 func _apply_seed_to_material() -> void:
     if _voxel_material == null:
@@ -228,6 +257,8 @@ func get_loaded_chunk_count() -> int:
     return _chunks.size()
 
 func get_startup_progress() -> float:
+    if not _terrain_shadow_ready:
+        return clampf(0.05 + _terrain_shadow_progress * 0.60, 0.05, 0.65)
     if not _startup_load_pending:
         return 1.0
     var built_count: int = 0
@@ -235,7 +266,7 @@ func get_startup_progress() -> float:
         var chunk := chunk_value as VoxelTerrainChunk
         if chunk != null and chunk.mesh_ready:
             built_count += 1
-    return clampf(0.12 + float(built_count) * 0.12, 0.12, 0.84)
+    return clampf(0.65 + float(built_count) * 0.05, 0.65, 0.95)
 
 func surface_sample_at_world(world_x: float, world_z: float) -> Vector3:
     if _generator == null:
