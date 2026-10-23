@@ -76,7 +76,7 @@ func build_mesh_data(job_data: Dictionary) -> Dictionary:
             var cache_x: float = float(cache_origin_x + cx * cache_step_voxels)
             height_cache[cz * cache_width + cx] = _sample_height_voxels(cache_x, cache_z, generator, world_min_x, world_min_z, world_size_voxels)
 
-    # The source samples are 0.5 m apart; outputs stay quantised to the 10 cm voxel grid.
+    # The height-cache spacing follows the requested mesh stride (at least the 0.5 m base);\n    # sampled heights stay quantised to the 10 cm logical voxel grid.
     var raw_heights := PackedInt32Array()
     raw_heights.resize(total_samples)
     for gz in range(grid_depth):
