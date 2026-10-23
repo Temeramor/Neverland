@@ -3,6 +3,7 @@ class_name VoxelWorld
 
 const VOXEL_SIZE: float = 0.1
 const LOD_KEY_STRIDE: int = 100000
+const BASE_MESH_STEP_VOXELS: int = 2
 const GeneratorScript = preload("res://scripts/voxel_generator.gd")
 const ChunkScript = preload("res://scripts/voxel_chunk.gd")
 const BuilderScript = preload("res://scripts/voxel_chunk_builder.gd")
@@ -33,9 +34,6 @@ const BuilderScript = preload("res://scripts/voxel_chunk_builder.gd")
 @export_range(16.0, 128.0, 8.0) var collision_distance_m: float = 80.0
 
 var _generator: VoxelTerrainGenerator
-var _terrain_shadow_proxy: TerrainShadowProxy
-var _terrain_shadow_ready: bool = false
-var _terrain_shadow_progress: float = 0.0
 var _voxel_material: ShaderMaterial
 var _player: CharacterBody3D
 var _chunks: Dictionary = {}
@@ -77,7 +75,6 @@ func _ready() -> void:
     _world_min_z = -world_size_m * 0.5
     _chunks_per_axis = int(ceil(float(_world_size_voxels) / float(_chunk_size_voxels)))
     _generator = GeneratorScript.new(seed_value, world_size_m)
-    _terrain_shadow_proxy = get_node_or_null("TerrainShadowProxy") as TerrainShadowProxy
 
     var surface_shader := load("res://shaders/voxel_surface.gdshader") as Shader
     _voxel_material = ShaderMaterial.new()
@@ -96,8 +93,6 @@ func _ready() -> void:
         call_deferred("_prepare_world_for_epoch", _generation_epoch)
 
 func _process(delta: float) -> void:
-    if not _terrain_shadow_ready and _terrain_shadow_proxy != null:
-        _terrain_shadow_progress = _terrain_shadow_proxy.get_build_progress()
     _build_estimate_refresh_timer += delta
     if _build_estimate_refresh_timer >= 0.5:
         _build_estimate_refresh_timer = 0.0
@@ -146,10 +141,6 @@ func regenerate_with_seed(new_seed: int) -> void:
     # Existing worker tasks cannot be cancelled safely; their epoch makes their results stale.
     _world_started = false
     _generation_epoch += 1
-    _terrain_shadow_ready = false
-    _terrain_shadow_progress = 0.0
-    if _terrain_shadow_proxy != null:
-        _terrain_shadow_proxy.visible = false
     seed_value = new_seed
     _queued.clear()
     _wanted.clear()
@@ -180,12 +171,6 @@ func regenerate_with_seed(new_seed: int) -> void:
 func _prepare_world_for_epoch(epoch: int) -> void:
     if epoch != _generation_epoch:
         return
-    if _terrain_shadow_proxy != null:
-        var completed: bool = await _terrain_shadow_proxy.generate(_generator, world_size_m)
-        if epoch != _generation_epoch or not completed:
-            return
-    _terrain_shadow_ready = true
-    _terrain_shadow_progress = 1.0
     _world_started = true
     _refresh_timer = 0.0
     _last_player_position = Vector2(INF, INF)
@@ -193,7 +178,8 @@ func _prepare_world_for_epoch(epoch: int) -> void:
     _refresh_streaming()
 
 func is_terrain_shadow_ready() -> bool:
-    return _terrain_shadow_ready
+    # Legacy API for existing loading UI. There is no separate shadow proxy now.
+    return is_world_coverage_ready()
 
 func is_world_coverage_ready() -> bool:
     var root_tiles: int = ceili(float(_world_size_voxels) / float(_chunk_size_voxels * 64))
@@ -265,8 +251,6 @@ func get_loaded_chunk_count() -> int:
     return _chunks.size()
 
 func get_startup_progress() -> float:
-    if not _terrain_shadow_ready:
-        return clampf(0.05 + _terrain_shadow_progress * 0.45, 0.05, 0.50)
     if not _startup_load_pending:
         return 1.0
     var root_tiles: int = ceili(float(_world_size_voxels) / float(_chunk_size_voxels * 64))
@@ -278,7 +262,7 @@ func get_startup_progress() -> float:
             if root_chunk != null and root_chunk.mesh_ready:
                 roots_ready += 1
     if roots_ready < roots_total:
-        return clampf(0.50 + 0.35 * float(roots_ready) / float(maxi(roots_total, 1)), 0.50, 0.85)
+        return clampf(0.05 + 0.60 * float(roots_ready) / float(maxi(roots_total, 1)), 0.05, 0.65)
     var near_total: int = 0
     var near_ready: int = 0
     for coord_value in _wanted.keys():
@@ -290,7 +274,7 @@ func get_startup_progress() -> float:
         var chunk: VoxelTerrainChunk = _chunks.get(coord) as VoxelTerrainChunk
         if chunk != null and chunk.mesh_ready:
             near_ready += 1
-    return clampf(0.85 + 0.10 * float(near_ready) / float(maxi(near_total, 1)), 0.85, 0.95)
+    return clampf(0.65 + 0.30 * float(near_ready) / float(maxi(near_total, 1)), 0.65, 0.95)
 
 func surface_sample_at_world(world_x: float, world_z: float) -> Vector3:
     if _generator == null:
@@ -784,7 +768,7 @@ func _collect_lod_tiles(lod_index: int, tile_x: int, tile_z: int, player_xz: Vec
         "start_x": int(bounds["start_x"]), "start_z": int(bounds["start_z"]),
         "size_x": int(bounds["size_x"]), "size_z": int(bounds["size_z"]),
         "tile_x": tile_x, "tile_z": tile_z, "tile_size_m": chunk_size_m * float(1 << lod_index),
-        "step_voxels": 1 << (lod_index + 1) if lod_index >= 4 else (1 << lod_index)
+        "step_voxels": BASE_MESH_STEP_VOXELS << lod_index
     }
     wanted[key] = req
     if split:
