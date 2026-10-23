@@ -1,6 +1,18 @@
-# Neverland 0.1.0.6
+# Neverland 0.1.0.7
 
 Neverland is a procedural first-person landscape exploration prototype built with Godot 4.7.2. This branch integrates **VoxEn 0.3.5** for streamed block-voxel terrain while preserving Neverland's original menu, sky/time-of-day system, weather controls, player controller, desktop input, Android touch controls and flight mode.
+
+## Changes in 0.1.0.7
+
+- **Pause menu:** Esc opens the pause menu on PC. Android receives an on-screen pause button in the top-right HUD. The pause menu offers Resume, Settings and Return to Main Menu.
+- **Live LOD settings:** the pause settings page changes the distant mesh sampling stride from standard to progressively coarser levels. LOD0 stays at the original 2-voxel mesh step; the default coarse setting changes LOD1 from 4 to 8 voxels per cell, LOD2 from 8 to 16, and continues this progression for farther levels.
+- **One LOD distance scale:** the player can choose a 32–256 m LOD0 boundary. Every subsequent band doubles from that value (for example, with 64 m: LOD0 0–64 m, LOD1 64–128 m, LOD2 128–256 m, and so on). LOD hysteresis scales with the same base distance.
+- **Mesh rebuild correctness:** chunks rebuild if their requested mesh stride changes; worker and completed results using an outdated stride are rejected.
+- **Native builder:** the native C++ mesher already accepts the requested `step_voxels` and scales its height-cache sampling with that step. It now returns the effective stride just like the GDScript fallback, so both paths participate in runtime LOD changes consistently. LOD distance decisions remain in the world streamer, where player distance and hierarchy are known.
+- **Saved options:** distant detail level and LOD0 distance persist in `user://settings.cfg` alongside flight controls.
+- **Version:** `project.godot` and `VERSION` both report `0.1.0.7`.
+
+
 
 ## Changes in 0.1.0.6
 
@@ -103,6 +115,12 @@ godot --headless --path . --script res://tests/lod_hierarchy_smoke_test.gd
 The terrain smoke test checks deterministic terrain, the mountain profile, terrain density, and proportional mountain scaling. The LOD hierarchy test checks all seven distance bands, tile footprint scaling, and edge truncation at the 10 km world boundary.
 
 ## Version history
+
+### 0.1.0.7
+- Added a pause menu with an Android HUD button, Esc support on PC, live LOD settings and a return-to-menu action.
+- Changed all LOD distance bands to derive geometrically from one configurable LOD0 range.
+- Added a coarser distant mesh stride option, stale-stride job rejection and persistence for the LOD values.
+- Ensured native and GDScript mesh builders report the same effective mesh stride.
 
 ### 0.1.0.6
 - Fixed the typed empty-array runtime error in LOD hierarchy reconciliation.
