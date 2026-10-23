@@ -181,6 +181,7 @@ struct MeshBuild {
     int32_t size_voxels_x = 0;
     int32_t size_voxels_z = 0;
     int32_t step_voxels = 1;
+    int32_t cache_step_voxels = HEIGHT_CACHE_STEP_VOXELS;
     int32_t cells_x = 0;
     int32_t cells_z = 0;
     int32_t halo = 0;
@@ -232,9 +233,9 @@ struct MeshBuild {
             return 0;
         }
         const double fx = (gx - static_cast<double>(cache_origin_x)) /
-            static_cast<double>(HEIGHT_CACHE_STEP_VOXELS);
+            static_cast<double>(cache_step_voxels);
         const double fz = (gz - static_cast<double>(cache_origin_z)) /
-            static_cast<double>(HEIGHT_CACHE_STEP_VOXELS);
+            static_cast<double>(cache_step_voxels);
         const int32_t bx = floor_to_int(fx);
         const int32_t bz = floor_to_int(fz);
         const double tx = std::clamp(fx - static_cast<double>(bx), 0.0, 1.0);
@@ -361,23 +362,23 @@ struct MeshBuild {
         const int32_t total_samples = grid_width * grid_depth;
 
         cache_origin_x = floor_to_int(
-            static_cast<double>(start_voxel_x - halo * step_voxels - HEIGHT_CACHE_STEP_VOXELS * 2) /
-            static_cast<double>(HEIGHT_CACHE_STEP_VOXELS)) * HEIGHT_CACHE_STEP_VOXELS;
+            static_cast<double>(start_voxel_x - halo * step_voxels - cache_step_voxels * 2) /
+            static_cast<double>(cache_step_voxels)) * cache_step_voxels;
         cache_origin_z = floor_to_int(
-            static_cast<double>(start_voxel_z - halo * step_voxels - HEIGHT_CACHE_STEP_VOXELS * 2) /
-            static_cast<double>(HEIGHT_CACHE_STEP_VOXELS)) * HEIGHT_CACHE_STEP_VOXELS;
-        const int32_t cache_end_x = start_voxel_x + size_voxels_x + halo * step_voxels + HEIGHT_CACHE_STEP_VOXELS * 2;
-        const int32_t cache_end_z = start_voxel_z + size_voxels_z + halo * step_voxels + HEIGHT_CACHE_STEP_VOXELS * 2;
+            static_cast<double>(start_voxel_z - halo * step_voxels - cache_step_voxels * 2) /
+            static_cast<double>(cache_step_voxels)) * cache_step_voxels;
+        const int32_t cache_end_x = start_voxel_x + size_voxels_x + halo * step_voxels + cache_step_voxels * 2;
+        const int32_t cache_end_z = start_voxel_z + size_voxels_z + halo * step_voxels + cache_step_voxels * 2;
         cache_width = static_cast<int32_t>(std::ceil(
-            static_cast<double>(cache_end_x - cache_origin_x) / HEIGHT_CACHE_STEP_VOXELS)) + 1;
+            static_cast<double>(cache_end_x - cache_origin_x) / cache_step_voxels)) + 1;
         cache_depth = static_cast<int32_t>(std::ceil(
-            static_cast<double>(cache_end_z - cache_origin_z) / HEIGHT_CACHE_STEP_VOXELS)) + 1;
+            static_cast<double>(cache_end_z - cache_origin_z) / cache_step_voxels)) + 1;
         height_cache.resize(static_cast<size_t>(cache_width) * cache_depth);
 
         for (int32_t cz = 0; cz < cache_depth; ++cz) {
-            const double cache_z = static_cast<double>(cache_origin_z + cz * HEIGHT_CACHE_STEP_VOXELS);
+            const double cache_z = static_cast<double>(cache_origin_z + cz * cache_step_voxels);
             for (int32_t cx = 0; cx < cache_width; ++cx) {
-                const double cache_x = static_cast<double>(cache_origin_x + cx * HEIGHT_CACHE_STEP_VOXELS);
+                const double cache_x = static_cast<double>(cache_origin_x + cx * cache_step_voxels);
                 height_cache[static_cast<size_t>(cz) * cache_width + cx] = sample_height_voxels(cache_x, cache_z);
             }
         }
@@ -631,6 +632,7 @@ struct MeshBuild {
         }
 
         step_voxels = std::max<int32_t>(1, static_cast<int32_t>(request.get("step_voxels", BASE_MESH_STEP_VOXELS << lod)));
+        cache_step_voxels = std::max<int32_t>(HEIGHT_CACHE_STEP_VOXELS, step_voxels);
         cell_size = static_cast<double>(step_voxels) * VOXEL_SIZE;
         cells_x = static_cast<int32_t>(std::ceil(static_cast<double>(size_voxels_x) / step_voxels));
         cells_z = static_cast<int32_t>(std::ceil(static_cast<double>(size_voxels_z) / step_voxels));
