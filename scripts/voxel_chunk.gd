@@ -102,6 +102,9 @@ func apply_mesh_data(data: Dictionary, material: Material) -> void:
     var mesh_instance := MeshInstance3D.new()
     mesh_instance.name = "VoxelMesh"
     mesh_instance.mesh = mesh
+    # Rebuilt chunks can remain logically inactive while hidden in the hierarchy.
+    # New VisualInstances are visible by default, so inherit the chunk state immediately.
+    mesh_instance.visible = _render_active
     # Every visible LOD casts its actual voxel terrain shadows. Farther meshes are
     # progressively coarser, so their shadow silhouettes stay cheap enough for the whole map.
     mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
