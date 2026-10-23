@@ -16,12 +16,8 @@ const BuilderScript = preload("res://scripts/voxel_chunk_builder.gd")
 
 @export_category("Streaming and LOD")
 @export_range(1024.0, 20000.0, 256.0) var render_distance_m: float = 4096.0
-@export_range(64.0, 256.0, 16.0) var lod0_distance_m: float = 128.0
-@export_range(128.0, 384.0, 16.0) var lod1_distance_m: float = 256.0
-@export_range(256.0, 768.0, 32.0) var lod2_distance_m: float = 512.0
-@export_range(512.0, 1536.0, 64.0) var lod3_distance_m: float = 1024.0
-@export_range(1024.0, 3072.0, 128.0) var lod4_distance_m: float = 2048.0
-@export_range(2048.0, 6144.0, 256.0) var lod5_distance_m: float = 4096.0
+@export_range(32.0, 256.0, 16.0) var lod0_distance_m: float = 128.0
+@export_range(0, 3, 1) var lod_detail_bias: int = 1
 @export_range(0.0, 24.0, 2.0) var lod_hysteresis_m: float = 12.0
 @export_range(1, 12, 1) var max_concurrent_mesh_jobs: int = 8
 @export_range(1, 4, 1) var max_mesh_applies_per_frame: int = 4
@@ -176,6 +172,30 @@ func _prepare_world_for_epoch(epoch: int) -> void:
     _last_player_position = Vector2(INF, INF)
     _last_refresh_chunk = Vector2i(-2147483648, -2147483648)
     _refresh_streaming()
+
+func set_lod_settings(detail_bias: int, lod0_distance: float) -> void:
+    var safe_bias: int = clampi(detail_bias, 0, 3)
+    var safe_distance: float = snappedf(clampf(lod0_distance, 32.0, 256.0), 16.0)
+    if lod_detail_bias == safe_bias and is_equal_approx(lod0_distance_m, safe_distance):
+        return
+    lod_detail_bias = safe_bias
+    lod0_distance_m = safe_distance
+    if _world_started:
+        _refresh_streaming()
+
+
+func get_lod_boundary_m(lod_index: int) -> float:
+    if lod_index < 0 or lod_index > 5:
+        return INF
+    return lod0_distance_m * float(1 << lod_index)
+
+
+func get_mesh_step_voxels(lod_index: int) -> int:
+    var safe_lod: int = clampi(lod_index, 0, 6)
+    if safe_lod == 0:
+        return BASE_MESH_STEP_VOXELS
+    return BASE_MESH_STEP_VOXELS << (safe_lod + lod_detail_bias)
+
 
 func is_terrain_shadow_ready() -> bool:
     # Legacy API for existing loading UI. There is no separate shadow proxy now.
@@ -332,7 +352,7 @@ func _refresh_streaming() -> void:
     for queued_coord in _queued.keys():
         if not wanted.has(queued_coord):
             _queued.erase(queued_coord)
-    var cache_radius: float = maxf(render_distance_m, lod5_distance_m) + chunk_size_m * 8.0
+    var cache_radius: float = maxf(render_distance_m, get_lod_boundary_m(5)) + chunk_size_m * 8.0
     for existing_value in _chunks.keys():
         var existing_coord: Vector2i = existing_value
         if wanted.has(existing_coord):
@@ -356,6 +376,7 @@ func _refresh_streaming() -> void:
         if chunk != null:
             needs_build = needs_build or (
                 chunk.lod != int(request["lod"])
+                or chunk.mesh_step_voxels != int(request["step_voxels"])
                 or chunk.debug_lod_colors != _debug_lod_colors
                 or (bool(request["collision"]) and not chunk.collision_enabled)
             )
@@ -363,7 +384,7 @@ func _refresh_streaming() -> void:
             _queued.erase(coord)
         elif needs_build:
             var previous: Dictionary = _queued.get(coord, {})
-            if not previous.is_empty() and int(previous.get("lod", -1)) == int(request["lod"]) and bool(previous.get("collision", false)) == bool(request["collision"]):
+            if not previous.is_empty() and int(previous.get("lod", -1)) == int(request["lod"]) and int(previous.get("step_voxels", -1)) == int(request["step_voxels"]) and bool(previous.get("collision", false)) == bool(request["collision"]):
                 request["queued_usec"] = int(previous.get("queued_usec", Time.get_ticks_usec()))
             else:
                 request["queued_usec"] = Time.get_ticks_usec()
@@ -613,13 +634,13 @@ func _job_record_matches_current(record: Dictionary, coord: Vector2i) -> bool:
         return false
     var current: Dictionary = _wanted[coord]
     var previous: Dictionary = record["request"]
-    return int(current["lod"]) == int(previous["lod"]) and bool(current["collision"]) == bool(previous["collision"])
+    return int(current["lod"]) == int(previous["lod"]) and int(current.get("step_voxels", -1)) == int(previous.get("step_voxels", -1)) and bool(current["collision"]) == bool(previous["collision"])
 
 func _running_job_matches(coord: Vector2i, request: Dictionary) -> bool:
     if not _running_by_coord.has(coord):
         return false
     var record: Dictionary = _running_tasks.get(int(_running_by_coord[coord]), {})
-    return not record.is_empty() and int(record["epoch"]) == _generation_epoch and int(record["seed"]) == seed_value and bool(record["debug"]) == _debug_lod_colors and int(record["request"]["lod"]) == int(request["lod"]) and bool(record["request"]["collision"]) == bool(request["collision"])
+    return not record.is_empty() and int(record["epoch"]) == _generation_epoch and int(record["seed"]) == seed_value and bool(record["debug"]) == _debug_lod_colors and int(record["request"]["lod"]) == int(request["lod"]) and int(record["request"].get("step_voxels", -1)) == int(request.get("step_voxels", -1)) and bool(record["request"]["collision"]) == bool(request["collision"])
 
 func _completed_job_matches(coord: Vector2i, request: Dictionary) -> bool:
     if not _completed_jobs.has(coord):
@@ -757,7 +778,7 @@ func _collect_lod_tiles(lod_index: int, tile_x: int, tile_z: int, player_xz: Vec
     var nearest: float = _distance_to_chunk_bounds(player_xz, bounds)
     var boundary: float = _lod_boundary_for(lod_index - 1) if lod_index > 0 else -1.0
     if lod_index == 6:
-        boundary = lod5_distance_m
+        boundary = get_lod_boundary_m(5)
     var previous: Dictionary = _wanted.get(key, {})
     var was_split: bool = bool(previous.get("fallback", false))
     var split: bool = false
@@ -772,7 +793,7 @@ func _collect_lod_tiles(lod_index: int, tile_x: int, tile_z: int, player_xz: Vec
         "start_x": int(bounds["start_x"]), "start_z": int(bounds["start_z"]),
         "size_x": int(bounds["size_x"]), "size_z": int(bounds["size_z"]),
         "tile_x": tile_x, "tile_z": tile_z, "tile_size_m": chunk_size_m * float(1 << lod_index),
-        "step_voxels": BASE_MESH_STEP_VOXELS << lod_index
+        "step_voxels": get_mesh_step_voxels(lod_index)
     }
     wanted[key] = req
     if split:
@@ -921,20 +942,10 @@ func _exit_tree() -> void:
     _retiring_chunks.clear()
 
 func _lod_for_distance(distance: float) -> int:
-    if distance < lod0_distance_m: return 0
-    if distance < lod1_distance_m: return 1
-    if distance < lod2_distance_m: return 2
-    if distance < lod3_distance_m: return 3
-    if distance < lod4_distance_m: return 4
-    if distance < lod5_distance_m: return 5
+    for lod_index in range(6):
+        if distance < get_lod_boundary_m(lod_index):
+            return lod_index
     return 6
 
 func _lod_boundary_for(lod_index: int) -> float:
-    match lod_index:
-        0: return lod0_distance_m
-        1: return lod1_distance_m
-        2: return lod2_distance_m
-        3: return lod3_distance_m
-        4: return lod4_distance_m
-        5: return lod5_distance_m
-        _: return INF
+    return get_lod_boundary_m(lod_index)
